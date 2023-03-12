@@ -17,9 +17,11 @@ import { ButtonModule } from 'primeng/button';
 import {ToastModule} from 'primeng/toast';
 import {MessagesModule} from 'primeng/messages';
 import {MessageModule} from 'primeng/message';
+import {TabMenuModule} from 'primeng/tabmenu';
+import { LogoutComponent } from './pages/logout/logout.component';
 
 @NgModule({
-  declarations: [AppComponent, TestChartComponent, LoginFormComponent],
+  declarations: [AppComponent, TestChartComponent, LoginFormComponent, LogoutComponent],
   imports: [
     BrowserModule,
     AppRoutingModule,
@@ -36,7 +38,8 @@ import {MessageModule} from 'primeng/message';
     ReactiveFormsModule,
     ToastModule,
     MessagesModule,
-    MessageModule
+    MessageModule,
+    TabMenuModule
   ],
   providers: [DatePipe],
   bootstrap: [AppComponent],

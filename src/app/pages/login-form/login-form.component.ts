@@ -42,6 +42,7 @@ export class LoginFormComponent {
 
   handleLoginResult(result: boolean): void {
     if (result) {
+      this.userService.setUserLoggedIn(result);
       this.router.navigate(['dashboard']);
     } else {
       this.messageService.add({
@@ -93,6 +94,8 @@ export class LoginFormComponent {
   }
 
   ngOnDestroy() {
-    this.loginSubscription.unsubscribe();
+    if (this.loginSubscription) {
+      this.loginSubscription.unsubscribe();
+    }
   }
 }

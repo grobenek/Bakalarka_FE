@@ -20,12 +20,12 @@ export class TestChartComponent implements OnInit, OnDestroy {
   private temperatureSubscription!: Subscription;
 
   constructor(
-    private temperatureService: TemperatureService,
-    private messageService: MessageService
-  ) {}
+    private temperatureService: TemperatureService  ) {}
 
   ngOnDestroy(): void {
-    this.temperatureSubscription.unsubscribe();
+    if (this.temperatureSubscription) {
+      this.temperatureSubscription.unsubscribe();
+    }
   }
 
   async ngOnInit() {
@@ -102,7 +102,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
 
     this.optionsDynamic = {
       title: {
-        text: 'Temperature',
+        text: 'Dynamic Temperature',
       },
       tooltip: {},
       legend: {

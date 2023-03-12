@@ -2,10 +2,13 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { LoginFormComponent } from './pages/login-form/login-form.component';
 import { TestChartComponent } from './pages/test-chart/test-chart.component';
+import { LogoutComponent } from './pages/logout/logout.component';
 
 const routes: Routes = [
-  { path: '', component: LoginFormComponent },
+  { path: 'login', component: LoginFormComponent },
   { path: 'dashboard', component: TestChartComponent },
+  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { path: 'logout', component: LogoutComponent },
 ];
 
 @NgModule({

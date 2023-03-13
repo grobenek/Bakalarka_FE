@@ -9,7 +9,6 @@ import { MessageService } from 'primeng/api';
   selector: 'app-test-chart',
   templateUrl: './test-chart.component.html',
   styleUrls: ['./test-chart.component.scss'],
-  providers: [MessageService],
 })
 export class TestChartComponent implements OnInit, OnDestroy {
   public optionsFullChart!: EChartsOption;
@@ -19,8 +18,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
   public dynamicChart!: ECharts;
   private temperatureSubscription!: Subscription;
 
-  constructor(
-    private temperatureService: TemperatureService  ) {}
+  constructor(private temperatureService: TemperatureService) {}
 
   ngOnDestroy(): void {
     if (this.temperatureSubscription) {

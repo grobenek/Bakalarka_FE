@@ -19,6 +19,7 @@ import {MessagesModule} from 'primeng/messages';
 import {MessageModule} from 'primeng/message';
 import {TabMenuModule} from 'primeng/tabmenu';
 import { LogoutComponent } from './pages/logout/logout.component';
+import { MessageService } from 'primeng/api';
 
 @NgModule({
   declarations: [AppComponent, TestChartComponent, LoginFormComponent, LogoutComponent],
@@ -41,7 +42,7 @@ import { LogoutComponent } from './pages/logout/logout.component';
     MessageModule,
     TabMenuModule
   ],
-  providers: [DatePipe],
+  providers: [DatePipe, MessageService],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

@@ -13,7 +13,7 @@ import { Router } from '@angular/router';
   styleUrls: ['./login-form.component.scss'],
   providers: [MessageService],
 })
-export class LoginFormComponent {
+export class LoginFormComponent implements OnDestroy {
   public isLoading!: boolean;
   public loginFormGroup!: FormGroup;
   public loginSubscription!: Subscription;
@@ -90,9 +90,6 @@ export class LoginFormComponent {
           if (typeof resultApi === 'boolean') {
             this.handleLoginResult(resultApi);
           }
-          // } else {
-          //   this.handleError(new HttpErrorResponse({ error: resultApi })); // ZISTIT CI TREBA ALEBO NIE
-          // }
         },
         complete: () => {
           this.isLoading = false;
@@ -101,7 +98,7 @@ export class LoginFormComponent {
   }
 
   registerClicked(): void {
-
+    this.router.navigate(['register']);
   }
 
   ngOnDestroy() {

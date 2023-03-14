@@ -20,9 +20,10 @@ import {MessageModule} from 'primeng/message';
 import {TabMenuModule} from 'primeng/tabmenu';
 import { LogoutComponent } from './pages/logout/logout.component';
 import { MessageService } from 'primeng/api';
+import { RegisterFormComponent } from './pages/register-form/register-form.component';
 
 @NgModule({
-  declarations: [AppComponent, TestChartComponent, LoginFormComponent, LogoutComponent],
+  declarations: [AppComponent, TestChartComponent, LoginFormComponent, LogoutComponent, RegisterFormComponent],
   imports: [
     BrowserModule,
     AppRoutingModule,

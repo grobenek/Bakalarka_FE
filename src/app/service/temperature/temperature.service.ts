@@ -20,7 +20,7 @@ export class TemperatureService {
       catchError((error: Error) => {
         this.messageService.add({
           severity: 'error',
-          detail: 'Server error has occurred',
+          summary: 'Server error has occurred',
           closable: false,
         });
         return throwError(() => error);
@@ -39,7 +39,7 @@ export class TemperatureService {
       catchError((error: Error) => {
         this.messageService.add({
           severity: 'error',
-          detail: 'Server error has occurred',
+          summary: 'Server error has occurred',
           closable: false,
         });
         return throwError(() => error);
@@ -54,7 +54,7 @@ export class TemperatureService {
       catchError((error: Error) => {
         this.messageService.add({
           severity: 'error',
-          detail: 'Server error has occurred',
+          summary: 'Server error has occurred',
           closable: false,
         });
         return throwError(() => error);

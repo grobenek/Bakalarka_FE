@@ -1,7 +1,10 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { UserLoginDetails } from '../../interface/userLoginDetails';
-import { Observable, Subject } from 'rxjs';
+import { UserLoginDetails } from '../../interface/user-login-details';
+import { Observable, Subject, catchError, throwError } from 'rxjs';
+import { UserRegisterDetails } from '../../interface/user-register-details';
+import { UserInfoWithoutPassword } from '../../interface/user-info-without-password';
+import { MessageService } from 'primeng/api';
 
 @Injectable({
   providedIn: 'root',
@@ -11,7 +14,10 @@ export class UserService {
   private userLoggedIn: boolean;
   public userLoggedIn$: Subject<boolean> = new Subject<boolean>();
 
-  constructor(private httpClient: HttpClient) {
+  constructor(
+    private httpClient: HttpClient,
+    private messageService: MessageService
+  ) {
     this.userLoggedIn = localStorage.getItem('userLoggedIn') === 'true';
   }
 
@@ -47,5 +53,15 @@ export class UserService {
   public verifyUser(userLoginDetails: UserLoginDetails): Observable<boolean> {
     const validateUrl = this.url + '/verify';
     return this.httpClient.post<boolean>(validateUrl, userLoginDetails);
+  }
+
+  public registerUser(
+    userRegisterDetails: UserRegisterDetails
+  ): Observable<UserInfoWithoutPassword> {
+    const registerUrl = this.url + '/register';
+    return this.httpClient.post<UserInfoWithoutPassword>(
+      registerUrl,
+      userRegisterDetails
+    );
   }
 }

@@ -4,7 +4,7 @@ import { MessageService } from 'primeng/api';
 import { UserService } from '../../service/user/user.service';
 import { Observable, catchError, of, tap, Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
-import { UserLoginDetails } from '../../interface/userLoginDetails';
+import { UserLoginDetails } from '../../interface/user-login-details';
 import { Router } from '@angular/router';
 
 @Component({
@@ -57,15 +57,17 @@ export class LoginFormComponent implements OnDestroy {
     if (error.status === 404) {
       this.messageService.add({
         severity: 'error',
+        summary: 'Error has occured',
         detail: 'Invalid username or password',
         closable: false,
       });
     } else {
       this.messageService.add({
         severity: 'error',
+        summary: 'Error has occured',
         detail: 'Server error occured',
-        closable: false
-      })
+        closable: false,
+      });
     }
     return of(error.message); // Return a new Observable with the error message to continue the stream
   }

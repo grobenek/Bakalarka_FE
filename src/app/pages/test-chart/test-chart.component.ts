@@ -43,10 +43,12 @@ export class TestChartComponent implements OnInit, OnDestroy {
   public onOptionChange(): void {
     this.unsubscribeFromTemperatureSubscription();
     this.lineChart?.showLoading();
+    this.temperatureData = [];
     this.stopLiveTemperatureInterval();
 
     switch (this.selectedOption) {
       case 'live':
+        this.initializeLastTimeOfFetchedData(); // set last time of fetched data to start of the day
         this.getLiveTemperature();
         this.startLiveTemperatureInterval();
         break;
@@ -80,9 +82,9 @@ export class TestChartComponent implements OnInit, OnDestroy {
           }
         );
 
-        this.temperatureData.push(mappedTemperatures);
+        this.temperatureData.push(...mappedTemperatures);
+        this.updateChartWithTemperatureData();
       });
-    this.updateChartWithTemperatureData();
     this.lastTimeOfFetchedData = new Date();
   }
 
@@ -105,7 +107,6 @@ export class TestChartComponent implements OnInit, OnDestroy {
           const timestamp = new Date(temperature.time).getTime();
           return [timestamp, temperature.temperature];
         });
-
         this.updateChartWithTemperatureData();
       });
   }
@@ -203,6 +204,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
       } else {
         this.onLineChartInit = (chart: any) => {
           this.lineChart = chart;
+
           resolve();
         };
       }

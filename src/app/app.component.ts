@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { Subscription } from 'rxjs';
 import { UserService } from './service/user/user.service';
@@ -9,12 +10,23 @@ import { UserService } from './service/user/user.service';
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent implements OnInit, OnDestroy {
-  public title: string = 'bakalarkaFE';
-  public menuItems: MenuItem[] = [];
+  public title: string;
+  public menuItems: MenuItem[];
+  public activeItem: MenuItem;
 
   private userLoggedInSubscription!: Subscription;
 
-  constructor(private userService: UserService) {}
+  constructor(
+    private userService: UserService,
+    private router: Router,
+    private zone: NgZone
+  ) {
+    this.title = 'bakalarkaFE';
+    this.menuItems = [
+      { label: 'Dashboard', icon: 'pi pi-desktop', routerLink: '/dashboard' },
+    ];
+    this.activeItem = this.menuItems[0];
+  }
 
   ngOnInit(): void {
     this.userLoggedInSubscription = this.userService.userLoggedIn$.subscribe(
@@ -23,6 +35,19 @@ export class AppComponent implements OnInit, OnDestroy {
       }
     );
     this.updateMenuItems();
+
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        const url = event.urlAfterRedirects;
+        this.zone.run(() => {
+          this.menuItems.forEach((item) => {
+            if (item.routerLink === url) {
+              this.activeItem = item;
+            }
+          });
+        });
+      }
+    });
   }
 
   private updateMenuItems(): void {
@@ -31,7 +56,11 @@ export class AppComponent implements OnInit, OnDestroy {
       { label: 'Dashboard', icon: 'pi pi-desktop', routerLink: '/dashboard' },
       isLoggedIn
         ? { label: 'Logout', icon: 'pi pi-sign-out', routerLink: '/logout' }
-        : { label: 'Login', icon: 'pi pi-sign-in', routerLink: '/login' },
+        : {
+            label: 'Login',
+            icon: 'pi pi-sign-in',
+            routerLink: '/login',
+          },
     ];
   }
 

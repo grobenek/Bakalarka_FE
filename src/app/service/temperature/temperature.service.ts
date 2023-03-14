@@ -34,7 +34,7 @@ export class TemperatureService {
   ): Observable<Temperature[]> {
     const startIsoString = startDate.toISOString();
     const endIsoString = endDate.toISOString();
-    const url = `${this.url}/${startIsoString}/${endIsoString}`;
+    const url = `${this.url}/between/${startIsoString}/${endIsoString}`;
     return this.httpClient.get<Temperature[]>(url).pipe(
       catchError((error: Error) => {
         this.messageService.add({

@@ -1,9 +1,9 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { TemperatureService } from '../../service/temperature/temperature.service';
 import { Temperature } from 'src/app/interface/temperature';
-import type { ECharts, EChartsOption, EChartsType } from 'echarts';
-import { Subscription, lastValueFrom } from 'rxjs';
-import { MessageService } from 'primeng/api';
+import type { ECharts, EChartsOption } from 'echarts';
+import { Subscription } from 'rxjs';
+import { SelectItem } from 'primeng/api';
 
 @Component({
   selector: 'app-test-chart',
@@ -11,50 +11,128 @@ import { MessageService } from 'primeng/api';
   styleUrls: ['./test-chart.component.scss'],
 })
 export class TestChartComponent implements OnInit, OnDestroy {
-  public optionsFullChart!: EChartsOption;
-  public optionsDynamic!: EChartsOption;
-  public dataFull: any = [];
-  public dataDynamic: any = [];
-  public dynamicChart!: ECharts;
+  public optionsLineChart!: EChartsOption;
+  public temperatureData: any = [];
+  public lineChart!: ECharts;
+  public selectedOption: string = 'live';
+  public readonly dropdownOptions: SelectItem[] = [
+    { label: 'Live Data', value: 'live' },
+    { label: 'Today', value: 'day' },
+    { label: 'Past 7 Days', value: '7days' },
+    { label: 'Past 30 Days', value: '30days' },
+    { label: 'Past Year', value: 'year' },
+  ];
   private temperatureSubscription!: Subscription;
+  private lastTimeOfFetchedData!: Date;
+  private intervalId: any;
+  private chartInitializedPromise!: Promise<void>;
 
   constructor(private temperatureService: TemperatureService) {}
 
+  public async ngOnInit(): Promise<void> {
+    this.initializeOptions();
+    this.initializeLastTimeOfFetchedData();
+    await this.waitUntilChartInitialized();
+    this.onOptionChange();
+  }
+
   ngOnDestroy(): void {
+    this.unsubscribeFromTemperatureSubscription();
+  }
+
+  public onOptionChange(): void {
+    this.unsubscribeFromTemperatureSubscription();
+    this.lineChart?.showLoading();
+    this.stopLiveTemperatureInterval();
+
+    switch (this.selectedOption) {
+      case 'live':
+        this.getLiveTemperature();
+        this.startLiveTemperatureInterval();
+        break;
+      case 'day':
+        this.loadDataForPeriod(24 * 60 * 60 * 1000); // 24 hours in milliseconds
+        break;
+      case '7days':
+        this.loadDataForPeriod(7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
+        break;
+      case '30days':
+        this.loadDataForPeriod(30 * 24 * 60 * 60 * 1000); // 30 days in milliseconds
+        break;
+      case 'year':
+        this.loadDataForPeriod(365 * 24 * 60 * 60 * 1000); // 365 days in milliseconds
+        break;
+      default:
+        this.startLiveTemperatureInterval();
+        break;
+    }
+  }
+  private getLiveTemperature(): void {
+    this.unsubscribeFromTemperatureSubscription();
+
+    this.temperatureSubscription = this.temperatureService
+      .getTemperaturesSince(this.lastTimeOfFetchedData)
+      .subscribe((temperatures: Temperature[]) => {
+        const mappedTemperatures = temperatures.map(
+          (temperature: Temperature) => {
+            const timestamp = new Date(temperature.time).getTime();
+            return [timestamp, temperature.temperature];
+          }
+        );
+
+        this.temperatureData.push(mappedTemperatures);
+      });
+    this.updateChartWithTemperatureData();
+    this.lastTimeOfFetchedData = new Date();
+  }
+
+  private unsubscribeFromTemperatureSubscription(): void {
     if (this.temperatureSubscription) {
       this.temperatureSubscription.unsubscribe();
     }
   }
 
-  async ngOnInit() {
-    await this.fetchTemperatures();
-    this.initializeOptions();
+  private loadDataForPeriod(period: number): void {
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - period);
 
-    setTimeout(() => {
-      this.temperatureService.getAllTemperatures().subscribe({
-        next: (temperatures: Temperature[]) => {
-          const updatedData = temperatures.map((temperature) => {
-            const timestamp = new Date(temperature.time).getTime();
-            return [timestamp, temperature.temperature];
-          });
+    this.unsubscribeFromTemperatureSubscription();
 
-          this.dataDynamic.push(...updatedData);
+    this.temperatureSubscription = this.temperatureService
+      .getTemperaturesBetweenDates(startDate, endDate)
+      .subscribe((temperatures: Temperature[]) => {
+        this.temperatureData = temperatures.map((temperature: Temperature) => {
+          const timestamp = new Date(temperature.time).getTime();
+          return [timestamp, temperature.temperature];
+        });
 
-          this.dynamicChart.setOption({
-            series: [
-              {
-                data: this.dataDynamic,
-              },
-            ],
-          });
-        },
+        this.updateChartWithTemperatureData();
       });
-      console.log('new data fetched!');
-    }, 10000);
+  }
+
+  private updateChartWithTemperatureData(): void {
+    this.lineChart.setOption({
+      series: [
+        {
+          name: 'Temperature',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.temperatureData,
+        },
+      ],
+    });
+    this.lineChart?.hideLoading();
+  }
+
+  private initializeLastTimeOfFetchedData(): void {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    this.lastTimeOfFetchedData = now;
   }
 
   private initializeOptions(): void {
-    this.optionsFullChart = {
+    this.optionsLineChart = {
       title: {
         text: 'Temperature',
       },
@@ -68,6 +146,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
           show: true,
         },
       },
+      darkMode: true,
       yAxis: {
         type: 'value',
         splitLine: {
@@ -80,51 +159,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
           type: 'line',
           showSymbol: false,
           areaStyle: {},
-          data: this.dataFull,
-        },
-      ],
-      dataZoom: [
-        {
-          show: true,
-          type: 'slider',
-        },
-        {
-          type: 'inside',
-        },
-      ],
-      axisPointer: {
-        animation: true,
-        show: true,
-      },
-    };
-
-    this.optionsDynamic = {
-      title: {
-        text: 'Dynamic Temperature',
-      },
-      tooltip: {},
-      legend: {
-        backgroundColor: 'lightBlue',
-      },
-      xAxis: {
-        type: 'time',
-        splitLine: {
-          show: true,
-        },
-      },
-      yAxis: {
-        type: 'value',
-        splitLine: {
-          show: false,
-        },
-      },
-      series: [
-        {
-          name: 'Temperature',
-          type: 'line',
-          showSymbol: false,
-          areaStyle: {},
-          data: this.dataDynamic,
+          data: this.temperatureData,
         },
       ],
       dataZoom: [
@@ -143,17 +178,34 @@ export class TestChartComponent implements OnInit, OnDestroy {
     };
   }
 
-  private async fetchTemperatures(): Promise<void> {
-    const temperatures: Temperature[] = await lastValueFrom(
-      this.temperatureService.getAllTemperatures()
-    );
-    this.dataFull = temperatures.map((temperature) => {
-      const timestamp = new Date(temperature.time).getTime();
-      return [timestamp, temperature.temperature];
+  private stopLiveTemperatureInterval(): void {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = undefined;
+    }
+  }
+
+  private startLiveTemperatureInterval(): void {
+    this.lineChart?.hideLoading();
+    this.intervalId = setInterval(() => {
+      this.getLiveTemperature();
+    }, 10000);
+  }
+
+  public onLineChartInit(chart: any): void {
+    this.lineChart = chart;
+  }
+
+  private async waitUntilChartInitialized(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      if (this.lineChart) {
+        resolve();
+      } else {
+        this.onLineChartInit = (chart: any) => {
+          this.lineChart = chart;
+          resolve();
+        };
+      }
     });
-  }
-
-  onChartInit(chart: any) {
-    this.dynamicChart = chart;
   }
 }

@@ -21,6 +21,7 @@ import {TabMenuModule} from 'primeng/tabmenu';
 import { LogoutComponent } from './pages/logout/logout.component';
 import { MessageService } from 'primeng/api';
 import { RegisterFormComponent } from './pages/register-form/register-form.component';
+import { DropdownModule } from 'primeng/dropdown';
 
 @NgModule({
   declarations: [AppComponent, TestChartComponent, LoginFormComponent, LogoutComponent, RegisterFormComponent],
@@ -41,7 +42,8 @@ import { RegisterFormComponent } from './pages/register-form/register-form.compo
     ToastModule,
     MessagesModule,
     MessageModule,
-    TabMenuModule
+    TabMenuModule,
+    DropdownModule
   ],
   providers: [DatePipe, MessageService],
   bootstrap: [AppComponent],

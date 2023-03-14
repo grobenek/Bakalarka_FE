@@ -1,3 +1,11 @@
 <p-toast></p-toast>
-<div echarts [options]="optionsFullChart"></div>
-<div echarts (chartInit)="onChartInit($event)" [autoResize]="true" [options]="optionsDynamic"></div>
+<div>
+  <p-dropdown
+  class="m-4"
+    [options]="dropdownOptions"
+    [(ngModel)]="selectedOption"
+    (onChange)="onOptionChange()"
+  ></p-dropdown>
+  <div echarts (chartInit)="onLineChartInit($event)" [options]="optionsLineChart"></div>
+</div>
+<!-- <div echarts (chartInit)="onChartInit($event)" [autoResize]="true" [options]="optionsDynamic"></div> -->

@@ -60,11 +60,17 @@ export class LoginFormComponent {
         detail: 'Invalid username or password',
         closable: false,
       });
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        detail: 'Server error occured',
+        closable: false
+      })
     }
     return of(error.message); // Return a new Observable with the error message to continue the stream
   }
 
-  clicked(): void {
+  loginSubmit(): void {
     this.isLoading = true;
 
     const userLoginDetails: UserLoginDetails = {
@@ -83,14 +89,19 @@ export class LoginFormComponent {
         next: (resultApi: string | boolean) => {
           if (typeof resultApi === 'boolean') {
             this.handleLoginResult(resultApi);
-          } else {
-            this.handleError(new HttpErrorResponse({ error: resultApi }));
           }
+          // } else {
+          //   this.handleError(new HttpErrorResponse({ error: resultApi })); // ZISTIT CI TREBA ALEBO NIE
+          // }
         },
         complete: () => {
           this.isLoading = false;
         },
       });
+  }
+
+  registerClicked(): void {
+
   }
 
   ngOnDestroy() {

@@ -17,7 +17,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
   public selectedOption: string = 'live';
   public readonly dropdownOptions: SelectItem[] = [
     { label: 'Live Data', value: 'live' },
-    { label: 'Today', value: 'day' },
+    { label: 'Last 24 hours', value: 'day' },
     { label: 'Past 7 Days', value: '7days' },
     { label: 'Past 30 Days', value: '30days' },
     { label: 'Past Year', value: 'year' },
@@ -116,9 +116,6 @@ export class TestChartComponent implements OnInit, OnDestroy {
       series: [
         {
           name: 'Temperature',
-          type: 'line',
-          showSymbol: false,
-          areaStyle: {},
           data: this.temperatureData,
         },
       ],
@@ -147,7 +144,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
           show: true,
         },
       },
-      darkMode: true,
+      darkMode: 'auto',
       yAxis: {
         type: 'value',
         splitLine: {
@@ -158,8 +155,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
         {
           name: 'Temperature',
           type: 'line',
-          showSymbol: false,
-          areaStyle: {},
+          showSymbol: true,
           data: this.temperatureData,
         },
       ],

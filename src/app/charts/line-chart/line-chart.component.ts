@@ -25,6 +25,9 @@ export class LineChartComponent implements OnInit, OnDestroy {
   private lastTimeOfFetchedData!: Date;
   private intervalId: any;
   private lineChart!: ECharts;
+  private static readonly MILLISECONDS_IN_HOUR = 60 * 60 * 1000;
+  private static readonly MILLISECONDS_IN_DAY =
+    24 * LineChartComponent.MILLISECONDS_IN_HOUR;
 
   constructor(private temperatureService: TemperatureService) {}
 
@@ -53,16 +56,16 @@ export class LineChartComponent implements OnInit, OnDestroy {
         this.startLiveTemperatureInterval();
         break;
       case 'day':
-        this.loadDataForPeriod(24 * 60 * 60 * 1000); // 24 hours in milliseconds
+        this.loadDataForPeriod(LineChartComponent.MILLISECONDS_IN_DAY);
         break;
       case '7days':
-        this.loadDataForPeriod(7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
+        this.loadDataForPeriod(7 * LineChartComponent.MILLISECONDS_IN_DAY);
         break;
       case '30days':
-        this.loadDataForPeriod(30 * 24 * 60 * 60 * 1000); // 30 days in milliseconds
+        this.loadDataForPeriod(30 * LineChartComponent.MILLISECONDS_IN_DAY);
         break;
       case 'year':
-        this.loadDataForPeriod(365 * 24 * 60 * 60 * 1000); // 365 days in milliseconds
+        this.loadDataForPeriod(365 * LineChartComponent.MILLISECONDS_IN_DAY);
         break;
       default:
         this.startLiveTemperatureInterval();

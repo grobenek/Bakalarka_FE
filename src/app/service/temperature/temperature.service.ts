@@ -61,4 +61,18 @@ export class TemperatureService {
       })
     );
   }
+
+  public getLastTemperature(): Observable<Temperature> {
+    let url = this.url + '/last';
+    return this.httpClient.get<Temperature>(url).pipe(
+      catchError((error: Error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Server error has occurred',
+          closable: false
+        });
+        return throwError(() => error);
+      })
+    )
+  }
 }

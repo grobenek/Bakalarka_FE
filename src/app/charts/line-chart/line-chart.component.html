@@ -1,0 +1,15 @@
+<div>
+  <p-dropdown
+    class="m-4"
+    [options]="lineChartDropdownOptions"
+    [(ngModel)]="lineChartSelectedOption"
+    (onChange)="onOptionChange()"
+  ></p-dropdown>
+  <div
+    echarts
+    (autoResize)="true"
+    (chartInit)="onLineChartInit($event)"
+    [options]="optionsLineChart"
+    class="chart"
+  ></div>
+</div>

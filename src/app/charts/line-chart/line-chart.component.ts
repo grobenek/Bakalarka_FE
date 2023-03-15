@@ -6,26 +6,25 @@ import { Subscription } from 'rxjs';
 import { SelectItem } from 'primeng/api';
 
 @Component({
-  selector: 'app-test-chart',
-  templateUrl: './test-chart.component.html',
-  styleUrls: ['./test-chart.component.scss'],
+  selector: 'app-line-chart',
+  templateUrl: './line-chart.component.html',
+  styleUrls: ['./line-chart.component.scss'],
 })
-export class TestChartComponent implements OnInit, OnDestroy {
+export class LineChartComponent implements OnInit, OnDestroy {
   public optionsLineChart!: EChartsOption;
   public temperatureData: any = [];
-  public lineChart!: ECharts;
-  public selectedOption: string = 'live';
-  public readonly dropdownOptions: SelectItem[] = [
+  public lineChartSelectedOption: string = 'live';
+  public readonly lineChartDropdownOptions: SelectItem[] = [
     { label: 'Live Data', value: 'live' },
     { label: 'Last 24 hours', value: 'day' },
     { label: 'Past 7 Days', value: '7days' },
     { label: 'Past 30 Days', value: '30days' },
     { label: 'Past Year', value: 'year' },
   ];
-  private temperatureSubscription!: Subscription;
+  private lineChartTemperatureSubscription!: Subscription;
   private lastTimeOfFetchedData!: Date;
   private intervalId: any;
-  private chartInitializedPromise!: Promise<void>;
+  private lineChart!: ECharts;
 
   constructor(private temperatureService: TemperatureService) {}
 
@@ -38,6 +37,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.unsubscribeFromTemperatureSubscription();
+    this.stopLiveTemperatureInterval();
   }
 
   public onOptionChange(): void {
@@ -46,7 +46,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
     this.temperatureData = [];
     this.stopLiveTemperatureInterval();
 
-    switch (this.selectedOption) {
+    switch (this.lineChartSelectedOption) {
       case 'live':
         this.initializeLastTimeOfFetchedData(); // set last time of fetched data to start of the day
         this.getLiveTemperature();
@@ -72,7 +72,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
   private getLiveTemperature(): void {
     this.unsubscribeFromTemperatureSubscription();
 
-    this.temperatureSubscription = this.temperatureService
+    this.lineChartTemperatureSubscription = this.temperatureService
       .getTemperaturesSince(this.lastTimeOfFetchedData)
       .subscribe((temperatures: Temperature[]) => {
         const mappedTemperatures = temperatures.map(
@@ -89,8 +89,8 @@ export class TestChartComponent implements OnInit, OnDestroy {
   }
 
   private unsubscribeFromTemperatureSubscription(): void {
-    if (this.temperatureSubscription) {
-      this.temperatureSubscription.unsubscribe();
+    if (this.lineChartTemperatureSubscription) {
+      this.lineChartTemperatureSubscription.unsubscribe();
     }
   }
 
@@ -100,7 +100,7 @@ export class TestChartComponent implements OnInit, OnDestroy {
 
     this.unsubscribeFromTemperatureSubscription();
 
-    this.temperatureSubscription = this.temperatureService
+    this.lineChartTemperatureSubscription = this.temperatureService
       .getTemperaturesBetweenDates(startDate, endDate)
       .subscribe((temperatures: Temperature[]) => {
         this.temperatureData = temperatures.map((temperature: Temperature) => {

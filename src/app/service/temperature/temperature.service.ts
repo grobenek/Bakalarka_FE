@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable, catchError, throwError } from 'rxjs';
 import { Temperature } from '../../interface/temperature';
 import { MessageService } from 'primeng/api';
+import { TemperatureMinMaxMean } from '../../interface/temperature-min-max-mean';
 
 @Injectable({
   providedIn: 'root',
@@ -32,8 +33,8 @@ export class TemperatureService {
     startDate: Date,
     endDate: Date
   ): Observable<Temperature[]> {
-    const startIsoString = startDate.toISOString();
-    const endIsoString = endDate.toISOString();
+    const startIsoString = encodeURIComponent(startDate.toISOString());
+    const endIsoString = encodeURIComponent(endDate.toISOString());
     const url = `${this.url}/between/${startIsoString}/${endIsoString}`;
     return this.httpClient.get<Temperature[]>(url).pipe(
       catchError((error: Error) => {
@@ -48,7 +49,7 @@ export class TemperatureService {
   }
 
   public getTemperaturesSince(since: Date): Observable<Temperature[]> {
-    let sinceString: string = since.toISOString();
+    let sinceString: string = encodeURIComponent(since.toISOString());
     let url = `${this.url}/since/${sinceString}`;
     return this.httpClient.get<Temperature[]>(url).pipe(
       catchError((error: Error) => {
@@ -69,10 +70,30 @@ export class TemperatureService {
         this.messageService.add({
           severity: 'error',
           summary: 'Server error has occurred',
-          closable: false
+          closable: false,
         });
         return throwError(() => error);
       })
-    )
+    );
+  }
+
+  public getGroupedTemperaturesBetweenDate(
+    startDate: Date,
+    endDate: Date
+  ): Observable<TemperatureMinMaxMean> {
+    const startIsoString = encodeURIComponent(startDate.toISOString());
+    const endIsoString = encodeURIComponent(endDate.toISOString());
+
+    const url = `${this.url}/grouped/between/${startIsoString}/${endIsoString}`;
+    return this.httpClient.get<TemperatureMinMaxMean>(url).pipe(
+      catchError((error: Error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Server error has occurred',
+          closable: false,
+        });
+        return throwError(() => error);
+      })
+    );
   }
 }

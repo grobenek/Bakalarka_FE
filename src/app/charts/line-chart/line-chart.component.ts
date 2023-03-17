@@ -4,6 +4,7 @@ import { Temperature } from 'src/app/interface/temperature';
 import type { ECharts, EChartsOption } from 'echarts';
 import { Subscription } from 'rxjs';
 import { SelectItem } from 'primeng/api';
+import { TemperatureMinMaxMean } from '../../interface/temperature-min-max-mean';
 
 @Component({
   selector: 'app-line-chart',
@@ -11,8 +12,18 @@ import { SelectItem } from 'primeng/api';
   styleUrls: ['./line-chart.component.scss'],
 })
 export class LineChartComponent implements OnInit, OnDestroy {
-  public optionsLineChart!: EChartsOption;
+  public lineChartOptions!: EChartsOption;
   public temperatureData: any = [];
+  public temperatureGroupedData: {
+    minTemperatures: number[][];
+    maxTemperatures: number[][];
+    meanTemperatures: number[][];
+  } = {
+    minTemperatures: [],
+    maxTemperatures: [],
+    meanTemperatures: [],
+  };
+
   public lineChartSelectedOption: string = 'live';
   public readonly lineChartDropdownOptions: SelectItem[] = [
     { label: 'Live Data', value: 'live' },
@@ -86,7 +97,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
         );
 
         this.temperatureData.push(...mappedTemperatures);
-        this.updateChartWithTemperatureData();
+        this.updateChartWithTemperatureData(true);
       });
     this.lastTimeOfFetchedData = new Date();
   }
@@ -104,25 +115,120 @@ export class LineChartComponent implements OnInit, OnDestroy {
     this.unsubscribeFromTemperatureSubscription();
 
     this.lineChartTemperatureSubscription = this.temperatureService
-      .getTemperaturesBetweenDates(startDate, endDate)
-      .subscribe((temperatures: Temperature[]) => {
-        this.temperatureData = temperatures.map((temperature: Temperature) => {
-          const timestamp = new Date(temperature.time).getTime();
-          return [timestamp, temperature.temperature];
-        });
-        this.updateChartWithTemperatureData();
+      .getGroupedTemperaturesBetweenDate(startDate, endDate)
+      .subscribe((temperatures: TemperatureMinMaxMean) => {
+        this.temperatureGroupedData.minTemperatures =
+          temperatures.minTemperatures.map((temperature: Temperature) => {
+            const timestamp = new Date(temperature.time).getTime();
+            return [timestamp, temperature.temperature];
+          });
+
+        this.temperatureGroupedData.maxTemperatures =
+          temperatures.maxTemperatures.map((temperature: Temperature) => {
+            const timestamp = new Date(temperature.time).getTime();
+            return [timestamp, temperature.temperature];
+          });
+
+        this.temperatureGroupedData.meanTemperatures =
+          temperatures.meanTemperatures.map((temperature: Temperature) => {
+            const timestamp = new Date(temperature.time).getTime();
+            return [timestamp, temperature.temperature];
+          });
+
+        this.updateChartWithTemperatureData(false);
       });
   }
 
-  private updateChartWithTemperatureData(): void {
-    this.lineChart.setOption({
-      series: [
-        {
-          name: 'Temperature',
-          data: this.temperatureData,
+  private updateChartWithTemperatureData(isLive: boolean): void {
+    if (isLive) {
+      this.lineChart.setOption({
+        series: [
+          {
+            name: 'LiveTemperature',
+            type: 'line',
+            showSymbol: true,
+
+            data: this.temperatureData,
+          },
+          {
+            name: 'MinTemperature',
+            type: 'line',
+            showSymbol: false,
+            areaStyle: {},
+            data: [],
+          },
+          {
+            name: 'MaxTemperature',
+            type: 'line',
+            showSymbol: false,
+            areaStyle: {},
+            data: [],
+          },
+          {
+            name: 'MeanTemperature',
+            type: 'line',
+            showSymbol: false,
+            areaStyle: {},
+            data: [],
+          },
+        ],
+        legend: {
+          show: true,
+          data: [
+            {
+              name: 'LiveTemperature',
+            },
+          ],
         },
-      ],
-    });
+      });
+    } else {
+      this.lineChart.setOption({
+        series: [
+          {
+            name: 'LiveTemperature',
+            type: 'line',
+            showSymbol: false,
+            data: [],
+          },
+          {
+            name: 'MinTemperature',
+            type: 'line',
+            showSymbol: false,
+            areaStyle: {},
+            data: this.temperatureGroupedData.minTemperatures,
+          },
+          {
+            name: 'MaxTemperature',
+            type: 'line',
+            showSymbol: false,
+            areaStyle: {},
+            data: this.temperatureGroupedData.maxTemperatures,
+          },
+          {
+            name: 'MeanTemperature',
+            type: 'line',
+            showSymbol: false,
+            areaStyle: {},
+            data: this.temperatureGroupedData.meanTemperatures,
+          },
+        ],
+        legend: {
+          show: true,
+          data: [
+            {
+              name: 'MinTemperature',
+            },
+            {
+              name: 'MeanTemperature',
+            },
+            {
+              name: 'MaxTemperature',
+            },
+          ],
+        },
+      });
+    }
+
     this.lineChart?.hideLoading();
   }
 
@@ -133,7 +239,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
   }
 
   private initializeOptions(): void {
-    this.optionsLineChart = {
+    this.lineChartOptions = {
       title: {
         text: 'Temperature',
       },
@@ -156,10 +262,32 @@ export class LineChartComponent implements OnInit, OnDestroy {
       },
       series: [
         {
-          name: 'Temperature',
+          name: 'LiveTemperature',
           type: 'line',
           showSymbol: true,
+
           data: this.temperatureData,
+        },
+        {
+          name: 'MinTemperature',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.temperatureGroupedData.minTemperatures,
+        },
+        {
+          name: 'MaxTemperature',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.temperatureGroupedData.maxTemperatures,
+        },
+        {
+          name: 'MeanTemperature',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.temperatureGroupedData.meanTemperatures,
         },
       ],
       dataZoom: [

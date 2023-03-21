@@ -1,13 +1,37 @@
 <div>
-  <p-dropdown
-    class="m-4"
-    [options]="lineChartDropdownOptions"
-    [(ngModel)]="lineChartSelectedOption"
-    (onChange)="onOptionChange()"
-  ></p-dropdown>
+  <p-overlayPanel #op>
+    <ng-template pTemplate>
+      <div class="flex flex-row column-gap-3">
+        <p-calendar
+          [(ngModel)]="rangeDates"
+          selectionMode="range"
+          [inline]="true"
+          [showButtonBar]="true"
+          (onSelect)="onDateRangeSelect()"
+        ></p-calendar>
+        <p-divider layout="vertical"></p-divider>
+        <div>
+          <p-listbox
+            [options]="lineChartListOptions"
+            (onClick)="onOptionChange()"
+            [(ngModel)]="lineChartSelectedOption"
+            optionLabel="label"
+            optionValue="value"
+          ></p-listbox>
+        </div>
+      </div>
+    </ng-template>
+  </p-overlayPanel>
+
+  <button
+    type="text"
+    pButton
+    label="Options"
+    (click)="op.toggle($event)"
+  ></button>
   <div
     echarts
-    (autoResize)="true"
+    (autoResize)="(true)"
     (chartInit)="onLineChartInit($event)"
     [options]="lineChartOptions"
     class="chart"

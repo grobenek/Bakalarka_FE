@@ -15,9 +15,7 @@ export class UserService {
   public userLoggedIn$: Subject<boolean> = new Subject<boolean>();
 
   constructor(
-    private httpClient: HttpClient,
-    private messageService: MessageService
-  ) {
+    private httpClient: HttpClient  ) {
     this.userLoggedIn = localStorage.getItem('userLoggedIn') === 'true';
   }
 

@@ -3,7 +3,7 @@ import { TemperatureService } from '../../service/temperature/temperature.servic
 import { Temperature } from 'src/app/interface/temperature';
 import type { ECharts, EChartsOption } from 'echarts';
 import { Subscription } from 'rxjs';
-import { SelectItem } from 'primeng/api';
+import { SelectItem, MessageService } from 'primeng/api';
 import { TemperatureMinMaxMean } from '../../interface/temperature-min-max-mean';
 
 @Component({
@@ -12,6 +12,7 @@ import { TemperatureMinMaxMean } from '../../interface/temperature-min-max-mean'
   styleUrls: ['./line-chart.component.scss'],
 })
 export class LineChartComponent implements OnInit, OnDestroy {
+  public rangeDates: Date[] = [new Date()]; // initializing calendar's choice
   public lineChartOptions!: EChartsOption;
   public temperatureData: any = [];
   public temperatureGroupedData: {
@@ -25,7 +26,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
   };
 
   public lineChartSelectedOption: string = 'live';
-  public readonly lineChartDropdownOptions: SelectItem[] = [
+  public readonly lineChartListOptions: SelectItem[] = [
     { label: 'Live Data', value: 'live' },
     { label: 'Last 24 hours', value: 'day' },
     { label: 'Past 7 Days', value: '7days' },
@@ -40,7 +41,10 @@ export class LineChartComponent implements OnInit, OnDestroy {
   private static readonly MILLISECONDS_IN_DAY =
     24 * LineChartComponent.MILLISECONDS_IN_HOUR;
 
-  constructor(private temperatureService: TemperatureService) {}
+  constructor(
+    private temperatureService: TemperatureService,
+    private messageService: MessageService
+  ) {}
 
   public async ngOnInit(): Promise<void> {
     this.initializeOptions();
@@ -54,9 +58,95 @@ export class LineChartComponent implements OnInit, OnDestroy {
     this.stopLiveTemperatureInterval();
   }
 
+  public onDateRangeSelect(): void {
+    this.lineChartSelectedOption = '';
+    this.stopLiveTemperatureInterval();
+    this.unsubscribeFromTemperatureSubscription();
+    this.lineChart?.showLoading();
+    this.temperatureData = [];
+
+    if (this.rangeDates[1] === null) {
+      this.lineChartTemperatureSubscription = this.temperatureService
+        .getTemperaturesFromDate(this.rangeDates[0])
+        .subscribe((temperatures: TemperatureMinMaxMean) => {
+          this.temperatureGroupedData.minTemperatures =
+            temperatures.minTemperatures.map((temperature: Temperature) => {
+              const timestamp = new Date(temperature.time).getTime();
+              return [timestamp, temperature.temperature];
+            });
+
+          this.temperatureGroupedData.maxTemperatures =
+            temperatures.maxTemperatures.map((temperature: Temperature) => {
+              const timestamp = new Date(temperature.time).getTime();
+              return [timestamp, temperature.temperature];
+            });
+
+          this.temperatureGroupedData.meanTemperatures =
+            temperatures.meanTemperatures.map((temperature: Temperature) => {
+              const timestamp = new Date(temperature.time).getTime();
+              return [timestamp, temperature.temperature];
+            });
+
+          if (
+            this.temperatureGroupedData.minTemperatures.length == 0 ||
+            this.temperatureGroupedData.meanTemperatures.length == 0 ||
+            this.temperatureGroupedData.maxTemperatures.length == 0
+          ) {
+            this.messageService.add({
+              severity: 'warn',
+              summary: 'No data found',
+              detail: `No data found for date ${this.rangeDates[0].toLocaleDateString()}.`,
+            });
+          }
+
+          this.updateChartWithTemperatureData(false);
+        });
+    } else {
+      this.lineChartTemperatureSubscription = this.temperatureService
+        .getGroupedTemperaturesBetweenDate(
+          this.rangeDates[0],
+          this.rangeDates[1]
+        )
+        .subscribe((temperatures: TemperatureMinMaxMean) => {
+          this.temperatureGroupedData.minTemperatures =
+            temperatures.minTemperatures.map((temperature: Temperature) => {
+              const timestamp = new Date(temperature.time).getTime();
+              return [timestamp, temperature.temperature];
+            });
+
+          this.temperatureGroupedData.maxTemperatures =
+            temperatures.maxTemperatures.map((temperature: Temperature) => {
+              const timestamp = new Date(temperature.time).getTime();
+              return [timestamp, temperature.temperature];
+            });
+
+          this.temperatureGroupedData.meanTemperatures =
+            temperatures.meanTemperatures.map((temperature: Temperature) => {
+              const timestamp = new Date(temperature.time).getTime();
+              return [timestamp, temperature.temperature];
+            });
+
+          if (
+            this.temperatureGroupedData.minTemperatures.length == 0 ||
+            this.temperatureGroupedData.meanTemperatures.length == 0 ||
+            this.temperatureGroupedData.maxTemperatures.length == 0
+          ) {
+            this.messageService.add({
+              severity: 'warn',
+              summary: 'No data found',
+              detail: `No data found between dates \n ${this.rangeDates[0].toLocaleDateString()} and ${this.rangeDates[1].toLocaleDateString()}.`,
+            });
+          }
+
+          this.updateChartWithTemperatureData(false);
+        });
+    }
+  }
+
   public onOptionChange(): void {
     this.unsubscribeFromTemperatureSubscription();
     this.lineChart?.showLoading();
+    this.rangeDates = [new Date()];
     this.temperatureData = [];
     this.stopLiveTemperatureInterval();
 

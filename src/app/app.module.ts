@@ -24,6 +24,9 @@ import { RegisterFormComponent } from './pages/register-form/register-form.compo
 import { DropdownModule } from 'primeng/dropdown';
 import { GaugeChartComponent } from './charts/gauge-chart/gauge-chart.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
+import {OverlayPanelModule} from 'primeng/overlaypanel';
+import {CalendarModule} from 'primeng/calendar';
+import {ListboxModule} from 'primeng/listbox';
 
 @NgModule({
   declarations: [
@@ -54,6 +57,9 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
     MessageModule,
     TabMenuModule,
     DropdownModule,
+    OverlayPanelModule,
+    CalendarModule,
+    ListboxModule
   ],
   providers: [DatePipe, MessageService],
   bootstrap: [AppComponent],

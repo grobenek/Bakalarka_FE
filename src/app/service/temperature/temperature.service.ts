@@ -96,4 +96,19 @@ export class TemperatureService {
       })
     );
   }
+
+  public getTemperaturesFromDate(startDate: Date): Observable<TemperatureMinMaxMean> {
+    const startDateIsoString = encodeURIComponent(startDate.toISOString());
+    const url = `${this.url}/${startDateIsoString}`;
+    return this.httpClient.get<TemperatureMinMaxMean>(url).pipe(
+      catchError((error: Error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Server error has occurred',
+          closable: false,
+        });
+        return throwError(() => error);
+      })
+    );
+  }
 }

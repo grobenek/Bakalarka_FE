@@ -27,6 +27,7 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import {OverlayPanelModule} from 'primeng/overlaypanel';
 import {CalendarModule} from 'primeng/calendar';
 import {ListboxModule} from 'primeng/listbox';
+import { PieChartComponent } from './charts/pie-chart/pie-chart.component';
 
 @NgModule({
   declarations: [
@@ -37,6 +38,7 @@ import {ListboxModule} from 'primeng/listbox';
     RegisterFormComponent,
     GaugeChartComponent,
     DashboardComponent,
+    PieChartComponent,
   ],
   imports: [
     BrowserModule,

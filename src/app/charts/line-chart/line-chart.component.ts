@@ -33,7 +33,6 @@ export class LineChartComponent implements OnInit, OnDestroy {
     { label: 'Past Year', value: 'year' },
   ];
   private lineChartTemperatureSubscription!: Subscription;
-  private startOfTheDate!: Date;
   private intervalId: any;
   private lineChart!: ECharts;
   private static readonly MILLISECONDS_IN_HOUR = 60 * 60 * 1000;
@@ -47,7 +46,6 @@ export class LineChartComponent implements OnInit, OnDestroy {
 
   public async ngOnInit(): Promise<void> {
     this.initializeOptions();
-    this.initializeStartOfTheDate();
     await this.waitUntilChartInitialized();
     this.onOptionChange();
   }
@@ -182,7 +180,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
     this.unsubscribeFromTemperatureSubscription();
 
     this.lineChartTemperatureSubscription = this.temperatureService
-      .getTemperaturesFromDate(this.startOfTheDate)
+      .getTemperaturesFromDate(new Date())
       .subscribe((temperatureGroupedData: TemperatureMinMaxMean) => {
         const mappedMinTemperatures =
           temperatureGroupedData.minTemperatures.map(
@@ -251,11 +249,6 @@ export class LineChartComponent implements OnInit, OnDestroy {
 
         this.updateChartWithTemperatureData();
       });
-  }
-
-  private initializeStartOfTheDate(): void {
-    this.startOfTheDate = new Date();
-    this.startOfTheDate.setHours(0, 0, 0, 0);
   }
 
   private updateChartWithTemperatureData(): void {

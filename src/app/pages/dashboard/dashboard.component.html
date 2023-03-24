@@ -1,5 +1,14 @@
 <p-toast></p-toast>
-<div class="dashboard">
-  <app-line-chart></app-line-chart>
-  <app-gauge-chart></app-gauge-chart>
+<div class="w-screen flex flex-column align-items-center justify-content-center flex-auto row-gap-2">
+  <div class="border-primary border-1 p-2">
+    <app-line-chart></app-line-chart>
+  </div>
+  <div class="flex w-screen flex-row align-items-center justify-content-evenly flex-auto ">
+    <div class="border-primary border-1 p-2">
+      <app-gauge-chart></app-gauge-chart>
+    </div>
+    <div class="border-primary border-1 p-2">
+      <app-pie-chart></app-pie-chart>
+    </div>
+  </div>
 </div>

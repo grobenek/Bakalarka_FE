@@ -33,7 +33,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
     { label: 'Past Year', value: 'year' },
   ];
   private lineChartTemperatureSubscription!: Subscription;
-  private lastTimeOfFetchedData!: Date;
+  private startOfTheDate!: Date;
   private intervalId: any;
   private lineChart!: ECharts;
   private static readonly MILLISECONDS_IN_HOUR = 60 * 60 * 1000;
@@ -47,7 +47,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
 
   public async ngOnInit(): Promise<void> {
     this.initializeOptions();
-    this.initializeLastTimeOfFetchedData();
+    this.initializeStartOfTheDate();
     await this.waitUntilChartInitialized();
     this.onOptionChange();
   }
@@ -151,7 +151,6 @@ export class LineChartComponent implements OnInit, OnDestroy {
 
     switch (this.lineChartSelectedOption) {
       case 'live':
-        this.initializeLastTimeOfFetchedData(); // set last time of fetched data to start of the day
         this.getLiveTemperature();
         this.startLiveTemperatureInterval();
         break;
@@ -183,7 +182,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
     this.unsubscribeFromTemperatureSubscription();
 
     this.lineChartTemperatureSubscription = this.temperatureService
-      .getTemperaturesSince(this.lastTimeOfFetchedData)
+      .getTemperaturesFromDate(this.startOfTheDate)
       .subscribe((temperatureGroupedData: TemperatureMinMaxMean) => {
         const mappedMinTemperatures =
           temperatureGroupedData.minTemperatures.map(
@@ -209,22 +208,12 @@ export class LineChartComponent implements OnInit, OnDestroy {
             }
           );
 
-        console.log(this.temperatureGroupedData);
-
-        this.temperatureGroupedData.minTemperatures.push(
-          ...mappedMinTemperatures
-        );
-        this.temperatureGroupedData.maxTemperatures.push(
-          ...mappedMaxTemperatures
-        );
-        this.temperatureGroupedData.meanTemperatures.push(
-          ...mappedMeanTemperatures
-        );
+        this.temperatureGroupedData.minTemperatures = mappedMinTemperatures;
+        this.temperatureGroupedData.maxTemperatures = mappedMaxTemperatures;
+        this.temperatureGroupedData.meanTemperatures = mappedMeanTemperatures;
 
         this.updateChartWithTemperatureData();
       });
-
-    this.lastTimeOfFetchedData = new Date();
   }
 
   private unsubscribeFromTemperatureSubscription(): void {
@@ -262,6 +251,11 @@ export class LineChartComponent implements OnInit, OnDestroy {
 
         this.updateChartWithTemperatureData();
       });
+  }
+
+  private initializeStartOfTheDate(): void {
+    this.startOfTheDate = new Date();
+    this.startOfTheDate.setHours(0, 0, 0, 0);
   }
 
   private updateChartWithTemperatureData(): void {
@@ -314,17 +308,8 @@ export class LineChartComponent implements OnInit, OnDestroy {
     this.lineChart?.hideLoading();
   }
 
-  private initializeLastTimeOfFetchedData(): void {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    this.lastTimeOfFetchedData = now;
-  }
-
   private initializeOptions(): void {
     this.lineChartOptions = {
-      title: {
-        text: 'Temperature',
-      },
       tooltip: {},
       legend: {
         backgroundColor: 'lightBlue',

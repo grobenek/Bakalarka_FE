@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { TestChartComponent } from './test-chart.component';
+import { LogoutComponent } from './logout.component';
 
-describe('TestChartComponent', () => {
-  let component: TestChartComponent;
-  let fixture: ComponentFixture<TestChartComponent>;
+describe('LogoutComponent', () => {
+  let component: LogoutComponent;
+  let fixture: ComponentFixture<LogoutComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ TestChartComponent ]
+      declarations: [ LogoutComponent ]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(TestChartComponent);
+    fixture = TestBed.createComponent(LogoutComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

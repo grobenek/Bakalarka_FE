@@ -4,7 +4,7 @@ import { MessageService } from 'primeng/api';
 import { UserService } from '../../service/user/user.service';
 import { Observable, catchError, of, tap, Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
-import { UserLoginDetails } from '../../interface/userLoginDetails';
+import { UserLoginDetails } from '../../interface/user-login-details';
 import { Router } from '@angular/router';
 
 @Component({
@@ -13,7 +13,7 @@ import { Router } from '@angular/router';
   styleUrls: ['./login-form.component.scss'],
   providers: [MessageService],
 })
-export class LoginFormComponent {
+export class LoginFormComponent implements OnDestroy {
   public isLoading!: boolean;
   public loginFormGroup!: FormGroup;
   public loginSubscription!: Subscription;
@@ -42,6 +42,7 @@ export class LoginFormComponent {
 
   handleLoginResult(result: boolean): void {
     if (result) {
+      this.userService.setUserLoggedIn(result);
       this.router.navigate(['dashboard']);
     } else {
       this.messageService.add({
@@ -56,14 +57,22 @@ export class LoginFormComponent {
     if (error.status === 404) {
       this.messageService.add({
         severity: 'error',
+        summary: 'Error has occured',
         detail: 'Invalid username or password',
+        closable: false,
+      });
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error has occured',
+        detail: 'Server error occured',
         closable: false,
       });
     }
     return of(error.message); // Return a new Observable with the error message to continue the stream
   }
 
-  clicked(): void {
+  loginSubmit(): void {
     this.isLoading = true;
 
     const userLoginDetails: UserLoginDetails = {
@@ -82,8 +91,6 @@ export class LoginFormComponent {
         next: (resultApi: string | boolean) => {
           if (typeof resultApi === 'boolean') {
             this.handleLoginResult(resultApi);
-          } else {
-            this.handleError(new HttpErrorResponse({ error: resultApi }));
           }
         },
         complete: () => {
@@ -92,7 +99,13 @@ export class LoginFormComponent {
       });
   }
 
+  registerClicked(): void {
+    this.router.navigate(['register']);
+  }
+
   ngOnDestroy() {
-    this.loginSubscription.unsubscribe();
+    if (this.loginSubscription) {
+      this.loginSubscription.unsubscribe();
+    }
   }
 }

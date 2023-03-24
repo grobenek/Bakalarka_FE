@@ -1,19 +1,18 @@
 <p-toast></p-toast>
-<form [formGroup]="loginFormGroup" (ngSubmit)="clicked()">
+<form [formGroup]="loginFormGroup" (ngSubmit)="loginSubmit()">
   <div
-    class="surface-card shadow-1 h-full w-5 h-30rem border-round-2xl absolute top-50 left-50 transform-translate-50-50"
+    class="surface-card shadow-3 h-full w-4 h-30rem border-round-2xl absolute top-50 left-50 transform-translate-50-50"
   >
     <div
       class="flex flex-column align-items-center justify-content-around h-full"
     >
-      <span class="text-2xl font-medium anton">Login</span>
+      <span class="text-2xl font-medium roboto">Login</span>
       <div
-        class="flex flex-column align-items-center row-gap-4 justify-content-center"
+        class="flex flex-column align-items-center row-gap-4 justify-content-center p-3 w-full"
       >
-        <div
-          class="flex flex-column align-items-start max-w-13rem justify-content-center"
-        >
-          <span class="p-float-label">
+        <div class="w-full">
+          <span class="p-float-label w-full p-input-icon-left">
+            <i class="pi pi-user"></i>
             <input
               class="w-full"
               id="username-input"
@@ -33,15 +32,26 @@
               <small class="p-error block">Username is required</small>
             </div>
             <div *ngIf="loginFormGroup.get('username')?.errors?.['minlength']">
-              <small class="p-error block">Username should be at least 3 characters long</small>
+              <small class="p-error block"
+                >Username should be at least 3 characters long</small
+              >
             </div>
           </div>
         </div>
-        <div
-          class="flex flex-column align-items-start max-w-13rem justify-content-center"
-        >
-          <span class="p-float-label">
-            <p-password formControlName="password"></p-password>
+        <div class="w-full">
+          <span class="p-float-label w-full">
+            <p-password
+              id="password"
+              type="password"
+              class="w-full"
+              [feedback]="false"
+              placeholder="Password"
+              styleClass="p-password p-component p-inputwrapper p-input-icon-right"
+              [style]="{ width: '100%' }"
+              [inputStyle]="{ width: '100%' }"
+              [toggleMask]="true"
+              formControlName="password"
+            ></p-password>
             <label for="password-input">Password</label>
           </span>
           <div
@@ -54,12 +64,21 @@
               <small class="p-error block">Password is required</small>
             </div>
             <div *ngIf="loginFormGroup.get('password')?.errors?.['minlength']">
-              <small class="p-error block">Password should be at least 4 characters long</small>
+              <small class="p-error block"
+                >Password should be at least 4 characters long</small
+              >
             </div>
           </div>
         </div>
       </div>
-      <div>
+      <div class="flex flex-column row-gap-3">
+        <button
+          pButton
+          type="button"
+          label="Register here!"
+          class="p-button-link"
+          (click)="registerClicked()"
+        ></button>
         <button
           pButton
           type="submit"

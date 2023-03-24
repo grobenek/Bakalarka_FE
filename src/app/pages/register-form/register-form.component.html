@@ -1,0 +1,147 @@
+<p-toast></p-toast>
+<form [formGroup]="registerFormGroup" (ngSubmit)="registerSubmit()">
+  <div
+    class="surface-card shadow-3 h-full w-4 h-30rem border-round-2xl absolute top-50 left-50 transform-translate-50-50"
+  >
+    <div
+      class="flex flex-column align-items-center justify-content-around h-full"
+    >
+      <span class="text-2xl font-medium roboto">Register</span>
+      <div class="flex flex-row column-gap-2 w-full p-3">
+        <!-- FIST NAME LAST NAME -->
+        <span class="p-float-label w-full">
+          <input
+            class="w-full"
+            id="firstname-input"
+            type="text"
+            formControlName="firstname"
+            pInputText
+          />
+          <label for="firstname-input">Fist name</label>
+        </span>
+        <span class="p-float-label w-full">
+          <input
+            class="w-full"
+            id="lastname-input"
+            type="text"
+            formControlName="lastname"
+            pInputText
+          />
+          <label for="lastname-input">Last name</label>
+        </span>
+      </div>
+      <div
+        class="flex flex-column align-items-center row-gap-4 justify-content-center w-full p-3"
+      >
+        <!-- USERNAME PASSWORD EMAIL -->
+        <div class="w-full">
+          <span class="p-float-label w-full p-input-icon-left">
+            <i class="pi pi-user"></i>
+            <input
+              class="w-full"
+              id="username-input"
+              type="text"
+              formControlName="username"
+              pInputText
+            />
+            <label for="username-input">Username</label>
+          </span>
+          <div
+            *ngIf="
+              registerFormGroup.get('username')?.errors &&
+              registerFormGroup.get('username')?.dirty
+            "
+          >
+            <div
+              *ngIf="registerFormGroup.get('username')?.errors?.['required']"
+            >
+              <small class="p-error block">Username is required</small>
+            </div>
+            <div
+              *ngIf="registerFormGroup.get('username')?.errors?.['minlength']"
+            >
+              <small class="p-error block"
+                >Username should be at least 3 characters long</small
+              >
+            </div>
+          </div>
+        </div>
+        <div class="w-full">
+          <!-- EMAIL -->
+          <span class="p-float-label w-full p-input-icon-left">
+            <i class="pi pi-at"></i>
+            <input
+              class="w-full"
+              id="email-input"
+              type="email"
+              formControlName="email"
+              pInputText
+            />
+            <label for="email-input">Email</label>
+          </span>
+          <div
+            *ngIf="
+              registerFormGroup.get('email')?.errors &&
+              registerFormGroup.get('email')?.dirty
+            "
+          >
+            <div *ngIf="registerFormGroup.get('email')?.errors?.['required']">
+              <small class="p-error block">Email is required</small>
+            </div>
+            <div *ngIf="registerFormGroup.get('email')?.errors?.['email']">
+              <small class="p-error block"
+                >Email is not in the right format</small
+              >
+            </div>
+          </div>
+        </div>
+        <!-- PASSWORD -->
+        <div class="w-full">
+          <span class="p-float-label w-full">
+            <p-password
+              id="password"
+              type="password"
+              class="w-full"
+              [feedback]="true"
+              placeholder="Password"
+              styleClass="p-password p-component p-inputwrapper p-input-icon-right"
+              [style]="{ width: '100%' }"
+              [inputStyle]="{ width: '100%' }"
+              [toggleMask]="true"
+              formControlName="password"
+            ></p-password>
+            <label for="password-input">Password</label>
+          </span>
+          <div
+            *ngIf="
+              registerFormGroup.get('password')?.errors &&
+              registerFormGroup.get('password')?.dirty
+            "
+          >
+            <div
+              *ngIf="registerFormGroup.get('password')?.errors?.['required']"
+            >
+              <small class="p-error block">Password is required</small>
+            </div>
+            <div
+              *ngIf="registerFormGroup.get('password')?.errors?.['minlength']"
+            >
+              <small class="p-error block"
+                >Password should be at least 4 characters long</small
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <button
+          pButton
+          type="submit"
+          label="Register"
+          [disabled]="registerFormGroup.invalid"
+          [loading]="isLoading"
+        ></button>
+      </div>
+    </div>
+  </div>
+</form>

@@ -65,36 +65,15 @@ export class LineChartComponent implements OnInit, OnDestroy {
     if (this.rangeDates[1] === null) {
       this.lineChartTemperatureSubscription = this.temperatureService
         .getTemperaturesFromDate(this.rangeDates[0])
-        .subscribe((temperatures: TemperatureMinMaxMean) => {
-          this.temperatureGroupedData.minTemperatures =
-            temperatures.minTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
-
-          this.temperatureGroupedData.maxTemperatures =
-            temperatures.maxTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
-
+        .subscribe((temperatureGroupedData: TemperatureMinMaxMean) => {
+          this.temperatureGroupedData.minTemperatures = this.mapTemperatureData(
+            temperatureGroupedData.minTemperatures
+          );
+          this.temperatureGroupedData.maxTemperatures = this.mapTemperatureData(
+            temperatureGroupedData.maxTemperatures
+          );
           this.temperatureGroupedData.meanTemperatures =
-            temperatures.meanTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
-
-          if (
-            this.temperatureGroupedData.minTemperatures.length == 0 ||
-            this.temperatureGroupedData.meanTemperatures.length == 0 ||
-            this.temperatureGroupedData.maxTemperatures.length == 0
-          ) {
-            this.messageService.add({
-              severity: 'warn',
-              summary: 'No data found',
-              detail: `No data found for date ${this.rangeDates[0].toLocaleDateString()}.`,
-            });
-          }
+            this.mapTemperatureData(temperatureGroupedData.meanTemperatures);
 
           this.updateChartWithTemperatureData();
         });
@@ -105,23 +84,14 @@ export class LineChartComponent implements OnInit, OnDestroy {
           this.rangeDates[1]
         )
         .subscribe((temperatures: TemperatureMinMaxMean) => {
-          this.temperatureGroupedData.minTemperatures =
-            temperatures.minTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
-
-          this.temperatureGroupedData.maxTemperatures =
-            temperatures.maxTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
-
+          this.temperatureGroupedData.minTemperatures = this.mapTemperatureData(
+            temperatures.minTemperatures
+          );
+          this.temperatureGroupedData.maxTemperatures = this.mapTemperatureData(
+            temperatures.maxTemperatures
+          );
           this.temperatureGroupedData.meanTemperatures =
-            temperatures.meanTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
+            this.mapTemperatureData(temperatures.meanTemperatures);
 
           if (
             this.temperatureGroupedData.minTemperatures.length == 0 ||
@@ -182,33 +152,15 @@ export class LineChartComponent implements OnInit, OnDestroy {
     this.lineChartTemperatureSubscription = this.temperatureService
       .getTemperaturesFromDate(new Date())
       .subscribe((temperatureGroupedData: TemperatureMinMaxMean) => {
-        const mappedMinTemperatures =
-          temperatureGroupedData.minTemperatures.map(
-            (temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            }
-          );
-
-        const mappedMaxTemperatures =
-          temperatureGroupedData.maxTemperatures.map(
-            (temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            }
-          );
-
-        const mappedMeanTemperatures =
-          temperatureGroupedData.meanTemperatures.map(
-            (temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            }
-          );
-
-        this.temperatureGroupedData.minTemperatures = mappedMinTemperatures;
-        this.temperatureGroupedData.maxTemperatures = mappedMaxTemperatures;
-        this.temperatureGroupedData.meanTemperatures = mappedMeanTemperatures;
+        this.temperatureGroupedData.minTemperatures = this.mapTemperatureData(
+          temperatureGroupedData.minTemperatures
+        );
+        this.temperatureGroupedData.maxTemperatures = this.mapTemperatureData(
+          temperatureGroupedData.maxTemperatures
+        );
+        this.temperatureGroupedData.meanTemperatures = this.mapTemperatureData(
+          temperatureGroupedData.meanTemperatures
+        );
 
         this.updateChartWithTemperatureData();
       });
@@ -220,6 +172,13 @@ export class LineChartComponent implements OnInit, OnDestroy {
     }
   }
 
+  private mapTemperatureData(temperatureData: Temperature[]): number[][] {
+    return temperatureData.map((temperature: Temperature) => {
+      const timestamp = new Date(temperature.time).getTime();
+      return [timestamp, temperature.temperature];
+    });
+  }
+
   private loadDataForPeriod(period: number): void {
     const endDate = new Date();
     const startDate = new Date(endDate.getTime() - period);
@@ -229,23 +188,17 @@ export class LineChartComponent implements OnInit, OnDestroy {
     this.lineChartTemperatureSubscription = this.temperatureService
       .getGroupedTemperaturesBetweenDate(startDate, endDate)
       .subscribe((temperatures: TemperatureMinMaxMean) => {
-        this.temperatureGroupedData.minTemperatures =
-          temperatures.minTemperatures.map((temperature: Temperature) => {
-            const timestamp = new Date(temperature.time).getTime();
-            return [timestamp, temperature.temperature];
-          });
+        this.temperatureGroupedData.minTemperatures = this.mapTemperatureData(
+          temperatures.minTemperatures
+        );
 
-        this.temperatureGroupedData.maxTemperatures =
-          temperatures.maxTemperatures.map((temperature: Temperature) => {
-            const timestamp = new Date(temperature.time).getTime();
-            return [timestamp, temperature.temperature];
-          });
+        this.temperatureGroupedData.maxTemperatures = this.mapTemperatureData(
+          temperatures.maxTemperatures
+        );
 
-        this.temperatureGroupedData.meanTemperatures =
-          temperatures.meanTemperatures.map((temperature: Temperature) => {
-            const timestamp = new Date(temperature.time).getTime();
-            return [timestamp, temperature.temperature];
-          });
+        this.temperatureGroupedData.meanTemperatures = this.mapTemperatureData(
+          temperatures.meanTemperatures
+        );
 
         this.updateChartWithTemperatureData();
       });
@@ -254,12 +207,6 @@ export class LineChartComponent implements OnInit, OnDestroy {
   private updateChartWithTemperatureData(): void {
     this.lineChart.setOption({
       series: [
-        {
-          name: 'LiveTemperature',
-          type: 'line',
-          showSymbol: false,
-          data: [],
-        },
         {
           name: 'MinTemperature',
           type: 'line',

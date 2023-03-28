@@ -1,5 +1,5 @@
 <div>
-  <p-overlayPanel #op>
+  <p-overlayPanel #opDate>
     <ng-template pTemplate>
       <div class="flex flex-row column-gap-3">
         <p-calendar
@@ -23,12 +23,16 @@
     </ng-template>
   </p-overlayPanel>
 
-  <button
-    type="text"
-    pButton
-    label="Options"
-    (click)="op.toggle($event)"
-  ></button>
+  <div class="flex flex-row column-gap-3">
+    <button
+      type="text"
+      pButton
+      label="Date"
+      icon="pi pi-calendar"
+      (click)="opDate.toggle($event)"
+    ></button>
+    <app-electric-data-tree-select></app-electric-data-tree-select>
+  </div>
   <div
     echarts
     (autoResize)="(true)"

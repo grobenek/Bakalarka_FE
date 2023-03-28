@@ -75,6 +75,18 @@ export class LineChartComponent implements OnInit, OnDestroy {
           this.temperatureGroupedData.meanTemperatures =
             this.mapTemperatureData(temperatureGroupedData.meanTemperatures);
 
+          if (
+            this.temperatureGroupedData.minTemperatures.length == 0 ||
+            this.temperatureGroupedData.meanTemperatures.length == 0 ||
+            this.temperatureGroupedData.maxTemperatures.length == 0
+          ) {
+            this.messageService.add({
+              severity: 'warn',
+              summary: 'No data found',
+              detail: `No data found for date ${this.rangeDates[0].toLocaleDateString()}.`,
+            });
+          }
+
           this.updateChartWithTemperatureData();
         });
     } else {
@@ -252,7 +264,10 @@ export class LineChartComponent implements OnInit, OnDestroy {
     this.lineChartOptions = {
       tooltip: {},
       legend: {
-        backgroundColor: 'lightBlue',
+        backgroundColor: '#121212',
+        textStyle: {
+          color: 'white',
+        },
       },
       xAxis: {
         type: 'time',

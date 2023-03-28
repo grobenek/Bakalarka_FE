@@ -1,8 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ECharts, EChartsOption } from 'echarts';
 import { Subscription } from 'rxjs';
-import { TemperatureService } from 'src/app/service/temperature/temperature.service';
-import { Temperature } from '../../interface/temperature';
+import { ElectricService } from 'src/app/service/electric/electric.service';
+import { GaugeElectricData } from '../../interface/gauge-electric-data';
+import { ElectricQuantities } from 'src/app/interface/electric-quantities';
 
 @Component({
   selector: 'app-gauge-chart',
@@ -12,31 +13,31 @@ import { Temperature } from '../../interface/temperature';
 export class GaugeChartComponent implements OnInit, OnDestroy {
   public optionsGaugeChart!: EChartsOption;
   public gaugeData: number = 0;
-  private gaugeChartTemperatureSubscription!: Subscription;
+  private gaugeChartElectricSubscription!: Subscription;
   private gaugeChart!: ECharts;
   private intervalId: any;
+  private selectedData: ElectricQuantities = ElectricQuantities.CURRENT;
 
-  constructor(private temperatureService: TemperatureService) {}
+  constructor(private electriService: ElectricService) {}
 
   public async ngOnInit(): Promise<void> {
     this.initializeChartOptions();
     await this.waitUntilGaugeChartInitialized();
-    this.getLiveTemperature();
-    this.startLiveTemperatureInterval();
+    this.startLiveElectricDataInterval();
   }
 
   public ngOnDestroy(): void {
-    this.unsubscribeFromTemperatureService();
-    this.stopLiveTemperatureInterval();
+    this.unsubscribeFromElectricService();
+    this.stopLiveElectricDataInterval();
   }
 
   private initializeChartOptions(): void {
     this.optionsGaugeChart = {
       series: [
         {
-          name: 'GaugeTemperature',
+          name: 'GaugeElectricData',
           min: 0,
-          max: 20,
+          max: 100,
           type: 'gauge',
           axisLine: {
             lineStyle: {
@@ -72,12 +73,13 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
           axisLabel: {
             color: 'inherit',
             distance: 40,
-            fontSize: 20,
+            fontSize: 19,
           },
           detail: {
             valueAnimation: true,
-            formatter: '{value} °C',
+            formatter: this.getFormatter(this.selectedData),
             color: 'inherit',
+            fontSize: 16,
           },
           data: [
             {
@@ -93,12 +95,39 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
     this.gaugeChart = chart;
   }
 
-  private getLiveTemperature(): void {
-    this.gaugeChartTemperatureSubscription = this.temperatureService
-      .getLastTemperature()
-      .subscribe((temperature: Temperature) => {
-        this.gaugeData = Number(temperature.temperature.toFixed(2));
-        this.unsubscribeFromTemperatureService();
+  onSelectedNodesChange(selectedData: ElectricQuantities): void {
+    this.selectedData = selectedData;
+    this.updateGaugeChartFormatter();
+    this.stopLiveElectricDataInterval();
+    this.unsubscribeFromElectricService();
+    this.startLiveElectricDataInterval();
+  }
+
+  private getLiveElectricData(selectedData: ElectricQuantities): void {
+    if (!selectedData) {
+      return;
+    }
+
+    let electricQuantity: ElectricQuantities;
+
+    switch (selectedData) {
+      case ElectricQuantities.CURRENT:
+        electricQuantity = ElectricQuantities.CURRENT;
+        break;
+      case ElectricQuantities.VOLTAGE:
+        electricQuantity = ElectricQuantities.VOLTAGE;
+        break;
+      case ElectricQuantities.GRID_FREQUENCY:
+        electricQuantity = ElectricQuantities.GRID_FREQUENCY;
+        break;
+      default:
+        return;
+    }
+
+    this.gaugeChartElectricSubscription = this.electriService
+      .getLastElectricQuantity([electricQuantity])
+      .subscribe((data: GaugeElectricData) => {
+        this.gaugeData = Number(data.value.toPrecision(4));
         this.updateGaugeChartData();
       });
   }
@@ -111,7 +140,7 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
     this.gaugeChart.setOption({
       series: [
         {
-          name: 'GaugeTemperature',
+          name: 'GaugeElectricData',
           data: [
             {
               value: this.gaugeData,
@@ -122,16 +151,50 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
     });
   }
 
-  private stopLiveTemperatureInterval(): void {
+  private updateGaugeChartFormatter(): void {
+    if (!this.gaugeChart) {
+      return;
+    }
+
+    this.gaugeChart.setOption({
+      series: [
+        {
+          name: 'GaugeElectricData',
+          detail: {
+            formatter: this.getFormatter(this.selectedData),
+          },
+        },
+      ],
+    });
+  }
+
+  private getFormatter(selectedData: ElectricQuantities): string {
+    switch (selectedData) {
+      case ElectricQuantities.CURRENT:
+        return '{value}\nA';
+      case ElectricQuantities.VOLTAGE:
+        return '{value}\nV';
+      case ElectricQuantities.GRID_FREQUENCY:
+        return '{value}\nHz';
+      default:
+        return '';
+    }
+  }
+
+  private stopLiveElectricDataInterval(): void {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = undefined;
     }
   }
 
-  private startLiveTemperatureInterval(): void {
+  private startLiveElectricDataInterval(): void {
+    this.stopLiveElectricDataInterval();
+    this.getLiveElectricData(this.selectedData);
     this.intervalId = setInterval(() => {
-      this.getLiveTemperature();
+      if (this.selectedData) {
+        this.getLiveElectricData(this.selectedData);
+      }
     }, 10000);
   }
 
@@ -142,16 +205,15 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
       } else {
         this.onGaugeChartInit = (chart: any) => {
           this.gaugeChart = chart;
-
           resolve();
         };
       }
     });
   }
 
-  private unsubscribeFromTemperatureService(): void {
-    if (this.gaugeChartTemperatureSubscription) {
-      this.gaugeChartTemperatureSubscription.unsubscribe();
+  private unsubscribeFromElectricService(): void {
+    if (this.gaugeChartElectricSubscription) {
+      this.gaugeChartElectricSubscription.unsubscribe();
     }
   }
 }

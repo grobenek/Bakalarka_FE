@@ -1,0 +1,25 @@
+<p-overlayPanel #op>
+  <ng-template pTemplate>
+    <span class="p-float-label md:w-20rem w-full">
+      <p-treeSelect
+        containerStyleClass="w-full"
+        [showClear]="showClear"
+        (onNodeSelect)="onNodeSelect()"
+        (onNodeUnselect)="onNodeUnselect()"
+        (onClear)="onNodeClear()"
+        [selectionMode]="selectionMode"
+        [(ngModel)]="selectedNodes"
+        [options]="nodes"
+      ></p-treeSelect>
+      <label for="treeselect">Select data to display</label>
+    </span>
+  </ng-template>
+</p-overlayPanel>
+
+<button
+  type="text"
+  pButton
+  label="Data"
+  icon="pi pi-bolt"
+  (click)="op.toggle($event)"
+></button>

@@ -28,6 +28,10 @@ import {OverlayPanelModule} from 'primeng/overlaypanel';
 import {CalendarModule} from 'primeng/calendar';
 import {ListboxModule} from 'primeng/listbox';
 import { PieChartComponent } from './charts/pie-chart/pie-chart.component';
+import { CheckboxModule } from 'primeng/checkbox';
+import { TreeSelectModule } from 'primeng/treeselect';
+import { TreeModule } from 'primeng/tree';
+import { ElectricDataTreeSelectComponent } from './components/electric-data-tree-select/electric-data-tree-select.component';
 
 @NgModule({
   declarations: [
@@ -39,6 +43,7 @@ import { PieChartComponent } from './charts/pie-chart/pie-chart.component';
     GaugeChartComponent,
     DashboardComponent,
     PieChartComponent,
+    ElectricDataTreeSelectComponent,
   ],
   imports: [
     BrowserModule,
@@ -61,7 +66,10 @@ import { PieChartComponent } from './charts/pie-chart/pie-chart.component';
     DropdownModule,
     OverlayPanelModule,
     CalendarModule,
-    ListboxModule
+    ListboxModule,
+    CheckboxModule,
+    TreeSelectModule,
+    TreeModule
   ],
   providers: [DatePipe, MessageService],
   bootstrap: [AppComponent],

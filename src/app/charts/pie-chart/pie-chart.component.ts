@@ -14,6 +14,10 @@ export class PieChartComponent {
     legend: {
       top: '5%',
       left: 'center',
+      backgroundColor: '#121212',
+        textStyle: {
+          color: 'white'
+        }
     },
     series: [
       {

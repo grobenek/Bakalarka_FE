@@ -53,6 +53,7 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
             itemStyle: {
               color: 'inherit',
             },
+            length: '60%',
           },
           axisTick: {
             distance: -30,
@@ -72,8 +73,8 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
           },
           axisLabel: {
             color: 'inherit',
-            distance: 40,
-            fontSize: 19,
+            distance: 35,
+            fontSize: 16,
           },
           detail: {
             valueAnimation: true,
@@ -105,6 +106,8 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
 
   private getLiveElectricData(selectedData: ElectricQuantities): void {
     if (!selectedData) {
+      this.gaugeData = 0;
+      this.updateGaugeChartData();
       return;
     }
 

@@ -5,6 +5,7 @@ import type { ECharts, EChartsOption } from 'echarts';
 import { Subscription } from 'rxjs';
 import { SelectItem, MessageService } from 'primeng/api';
 import { TemperatureMinMaxMean } from '../../interface/temperature-min-max-mean';
+import { ElectricService } from '../../service/electric/electric.service';
 
 @Component({
   selector: 'app-line-chart',
@@ -41,7 +42,8 @@ export class LineChartComponent implements OnInit, OnDestroy {
 
   constructor(
     private temperatureService: TemperatureService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private electricService: ElectricService
   ) {}
 
   public async ngOnInit(): Promise<void> {

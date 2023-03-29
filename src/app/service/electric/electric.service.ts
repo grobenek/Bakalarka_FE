@@ -5,6 +5,10 @@ import { GaugeElectricData } from '../../interface/gauge-electric-data';
 import { MessageService } from 'primeng/api';
 import { ElectricQuantities } from 'src/app/interface/electric-quantities';
 import { ElectricPhase } from 'src/app/interface/electric-phase';
+import {
+  ElectricData,
+  ElectricDataMinMaxMean,
+} from 'src/app/interface/electric-data';
 
 @Injectable({
   providedIn: 'root',
@@ -62,6 +66,144 @@ export class ElectricService {
         return transformedData;
       }),
       filter((data): data is GaugeElectricData => data !== null),
+      catchError((error: Error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Server error has occurred',
+          closable: false,
+        });
+        return throwError(() => error);
+      })
+    );
+  }
+
+  public getAllElectricQuantitiesBetweenDates(
+    startDate: Date,
+    endDate: Date,
+    electricQuantities: ElectricQuantities[],
+    currentPhaseFilters?: ElectricPhase[],
+    voltagePhaseFilters?: ElectricPhase[]
+  ): Observable<ElectricData> {
+    const startIsoString = encodeURIComponent(startDate.toISOString());
+    const endIsoString = encodeURIComponent(endDate.toISOString());
+    const url: string = this.url + `/between/${startIsoString}/${endIsoString}`;
+
+    const currentPhaseFiltersString = currentPhaseFilters
+      ? currentPhaseFilters.join(',')
+      : '';
+    const voltagePhaseFiltersString = voltagePhaseFilters
+      ? voltagePhaseFilters.join(',')
+      : '';
+
+    const params = new HttpParams()
+      .set('electricQuantities', electricQuantities.join(','))
+      .set('currentPhaseFilters', currentPhaseFiltersString)
+      .set('voltagePhaseFilters', voltagePhaseFiltersString);
+
+    return this.http.get<ElectricData>(url, { params }).pipe(
+      catchError((error: Error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Server error has occurred',
+          closable: false,
+        });
+        return throwError(() => error);
+      })
+    );
+  }
+
+  public getElectricQuantitiesSince(
+    sinceDate: Date,
+    electricQuantities: ElectricQuantities[],
+    currentPhaseFilters?: ElectricPhase[],
+    voltagePhaseFilters?: ElectricPhase[]
+  ): Observable<ElectricDataMinMaxMean> {
+    const sinceDateIsoString: string = encodeURIComponent(
+      sinceDate.toISOString()
+    );
+    const url: string = this.url + `/since/${sinceDateIsoString}`;
+    const currentPhaseFiltersString = currentPhaseFilters
+      ? currentPhaseFilters.join(',')
+      : '';
+    const voltagePhaseFiltersString = voltagePhaseFilters
+      ? voltagePhaseFilters.join(',')
+      : '';
+
+    const params = new HttpParams()
+      .set('electricQuantities', electricQuantities.join(','))
+      .set('currentPhaseFilters', currentPhaseFiltersString)
+      .set('voltagePhaseFilters', voltagePhaseFiltersString);
+
+    return this.http.get<ElectricDataMinMaxMean>(url, { params }).pipe(
+      catchError((error: Error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Server error has occurred',
+          closable: false,
+        });
+        return throwError(() => error);
+      })
+    );
+  }
+
+  public getGroupedElectricQuantitiesBetweenDate(
+    startDate: Date,
+    endDate: Date,
+    electricQuantities: ElectricQuantities[],
+    currentPhaseFilters?: ElectricPhase[],
+    voltagePhaseFilters?: ElectricPhase[]
+  ): Observable<ElectricDataMinMaxMean> {
+    const startIsoString: string = encodeURIComponent(startDate.toISOString());
+    const endIsoString: string = encodeURIComponent(endDate.toISOString());
+    const url: string =
+      this.url + `/grouped/between/${startIsoString}/${endIsoString}`;
+    const currentPhaseFiltersString = currentPhaseFilters
+      ? currentPhaseFilters.join(',')
+      : '';
+    const voltagePhaseFiltersString = voltagePhaseFilters
+      ? voltagePhaseFilters.join(',')
+      : '';
+
+    const params = new HttpParams()
+      .set('electricQuantities', electricQuantities.join(','))
+      .set('currentPhaseFilters', currentPhaseFiltersString)
+      .set('voltagePhaseFilters', voltagePhaseFiltersString);
+
+    return this.http.get<ElectricDataMinMaxMean>(url, { params }).pipe(
+      catchError((error: Error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Server error has occurred',
+          closable: false,
+        });
+        return throwError(() => error);
+      })
+    );
+  }
+
+  public getAllElectricQuantitiesFromDate(
+    startDate: Date,
+    electricQuantities: ElectricQuantities[],
+    currentPhaseFilters?: ElectricPhase[],
+    voltagePhaseFilters?: ElectricPhase[]
+  ): Observable<ElectricDataMinMaxMean> {
+    const startDateIsoString: string = encodeURIComponent(
+      startDate.toISOString()
+    );
+    const url: string = this.url + `/${startDateIsoString}`;
+    const currentPhaseFiltersString = currentPhaseFilters
+      ? currentPhaseFilters.join(',')
+      : '';
+    const voltagePhaseFiltersString = voltagePhaseFilters
+      ? voltagePhaseFilters.join(',')
+      : '';
+
+    const params = new HttpParams()
+      .set('electricQuantities', electricQuantities.join(','))
+      .set('currentPhaseFilters', currentPhaseFiltersString)
+      .set('voltagePhaseFilters', voltagePhaseFiltersString);
+
+    return this.http.get<ElectricDataMinMaxMean>(url, { params }).pipe(
       catchError((error: Error) => {
         this.messageService.add({
           severity: 'error',

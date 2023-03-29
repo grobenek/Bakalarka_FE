@@ -1,3 +1,4 @@
+import { ElectricPhase } from './electric-phase';
 export enum ElectricQuantities {
   CURRENT = 'CURRENT',
   GRID_FREQUENCY = 'GRID_FREQUENCY',
@@ -6,17 +7,17 @@ export enum ElectricQuantities {
 
 export interface Voltage {
   voltage: number;
-  time: string;
-  phase: string;
+  time: Date;
+  phase: ElectricPhase;
 }
 
 export interface GridFrequency {
   frequency: number;
-  time: string;
+  time: Date;
 }
 
 export interface Current {
   current: number;
   time: string;
-  phase: string;
+  phase: ElectricPhase;
 }

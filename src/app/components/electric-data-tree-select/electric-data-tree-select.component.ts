@@ -1,6 +1,6 @@
 import { ElectricQuantities } from './../../interface/electric-quantities';
 import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
-
+import { TreeNode } from 'primeng/api';
 @Component({
   selector: 'app-electric-data-tree-select',
   templateUrl: './electric-data-tree-select.component.html',
@@ -11,7 +11,7 @@ export class ElectricDataTreeSelectComponent implements OnInit {
   @Output() selectedNodesChange = new EventEmitter<ElectricQuantities>();
   public selectionMode!: string;
   public showClear: boolean = true;
-  public nodes!: any;
+  public nodes!: TreeNode[];
   public selectedNodes: any;
 
   ngOnInit(): void {
@@ -19,17 +19,14 @@ export class ElectricDataTreeSelectComponent implements OnInit {
       this.selectionMode = 'single';
       this.nodes = [
         {
-          key: '0',
           label: 'Current',
           data: ElectricQuantities.CURRENT,
         },
         {
-          key: '2',
           label: 'Voltage',
           data: ElectricQuantities.VOLTAGE,
         },
         {
-          key: '1',
           label: 'Grid frequency',
           data: ElectricQuantities.GRID_FREQUENCY,
         },
@@ -38,74 +35,99 @@ export class ElectricDataTreeSelectComponent implements OnInit {
       this.selectionMode = 'checkbox';
       this.nodes = [
         {
-          key: '0',
           label: 'Current',
           data: 'Current',
+          selectable: true,
           children: [
             {
-              key: '0-0',
               label: 'L1',
               data: 'CurrentL1',
+              selectable: true,
             },
             {
-              key: '0-1',
               label: 'L2',
               data: 'CurrentL2',
+              selectable: true,
             },
             {
-              key: '0-2',
               label: 'L3',
               data: 'CurrentL3',
+              selectable: true,
             },
           ],
         },
         {
-          key: '2',
           label: 'Voltage',
           data: 'Voltage',
+          selectable: true,
           children: [
             {
-              key: '2-0',
               label: 'L1',
               data: 'VoltageL1',
+              selectable: true,
             },
             {
-              key: '2-1',
               label: 'L2',
               data: 'VoltageL2',
+              selectable: true,
             },
             {
-              key: '2-2',
               label: 'L3',
               data: 'VoltageL3',
+              selectable: true,
             },
           ],
         },
-        ,
         {
-          key: '1',
           label: 'Grid frequency',
           data: 'Grid frequency',
+          selectable: true,
         },
       ];
     }
   }
 
-  onNodeSelect(): void {
+  public onNodeSelect(): void {
+    if (this.selectionMode === 'checkbox') {
+      this.changeSelectable(false);
+    }
+
     this.onSelectedNodesChange();
   }
 
-  onNodeUnselect(): void {
+  public onNodeUnselect(): void {
+    if (this.selectionMode === 'checkbox') {
+      this.changeSelectable(true);
+    }
+
     this.onSelectedNodesChange();
   }
 
-  onNodeClear(): void {
+  public onNodeClear(): void {
     this.onSelectedNodesChange();
   }
 
-  onSelectedNodesChange(): void {
+  public onSelectedNodesChange(): void {
     this.selectedNodesChange.emit(
       this.selectedNodes ? this.selectedNodes.data : ''
     );
+  }
+
+  private changeSelectable(selectable: boolean) {
+    const selectedNode: TreeNode = this.selectedNodes.at(0) || { data: 'null' }; // so it can enable all nodes
+
+    this.nodes.forEach((node: TreeNode) => {
+      if (node.data === selectedNode.data) {
+        return;
+      }
+
+      node.selectable = selectable;
+
+      if (node.children) {
+        node.children.forEach((child: TreeNode) => {
+          child.selectable = selectable;
+        });
+      }
+    });
   }
 }

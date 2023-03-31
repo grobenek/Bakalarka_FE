@@ -4,6 +4,8 @@ import { Subscription } from 'rxjs';
 import { ElectricService } from 'src/app/service/electric/electric.service';
 import { GaugeElectricData } from '../../interface/gauge-electric-data';
 import { ElectricQuantities } from 'src/app/interface/electric-quantities';
+import { TreeNode } from 'primeng/api';
+import { Tree } from 'primeng/tree';
 
 @Component({
   selector: 'app-gauge-chart',
@@ -96,8 +98,19 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
     this.gaugeChart = chart;
   }
 
-  onSelectedNodesChange(selectedData: ElectricQuantities): void {
-    this.selectedData = selectedData;
+  onSelectedNodesChange(selectedData: TreeNode[]): void {
+    switch ((selectedData as TreeNode).data) {
+      case ElectricQuantities.CURRENT:
+        this.selectedData = ElectricQuantities.CURRENT;
+        break;
+      case ElectricQuantities.VOLTAGE:
+        this.selectedData = ElectricQuantities.VOLTAGE;
+        break;
+      case ElectricQuantities.GRID_FREQUENCY:
+        this.selectedData = ElectricQuantities.GRID_FREQUENCY;
+        break;
+    }
+
     this.updateGaugeChartFormatter();
     this.stopLiveElectricDataInterval();
     this.unsubscribeFromElectricService();

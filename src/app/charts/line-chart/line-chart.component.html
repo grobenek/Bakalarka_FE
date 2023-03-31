@@ -12,9 +12,9 @@
         <p-divider layout="vertical"></p-divider>
         <div>
           <p-listbox
-            [options]="lineChartListOptions"
-            (onClick)="onOptionChange()"
-            [(ngModel)]="lineChartSelectedOption"
+            [options]="lineChartListDateOptions"
+            (onClick)="onDateOptionChange()"
+            [(ngModel)]="lineChartSelectedDateOption"
             optionLabel="label"
             optionValue="value"
           ></p-listbox>
@@ -31,7 +31,10 @@
       icon="pi pi-calendar"
       (click)="opDate.toggle($event)"
     ></button>
-    <app-electric-data-tree-select></app-electric-data-tree-select>
+    <app-electric-data-tree-select
+      [onlyOneOption]="false"
+      (selectedNodesChange)="onSelectedNodesChange($event)"
+    ></app-electric-data-tree-select>
   </div>
   <div
     echarts

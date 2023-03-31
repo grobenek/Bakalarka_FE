@@ -8,11 +8,11 @@ import { TreeNode } from 'primeng/api';
 })
 export class ElectricDataTreeSelectComponent implements OnInit {
   @Input() onlyOneOption!: boolean;
-  @Output() selectedNodesChange = new EventEmitter<ElectricQuantities>();
+  @Output() selectedNodesChange = new EventEmitter<TreeNode[]>();
   public selectionMode!: string;
   public showClear: boolean = true;
   public nodes!: TreeNode[];
-  public selectedNodes: any;
+  public selectedNodes!: TreeNode[];
 
   ngOnInit(): void {
     if (this.onlyOneOption) {
@@ -30,6 +30,10 @@ export class ElectricDataTreeSelectComponent implements OnInit {
           label: 'Grid frequency',
           data: ElectricQuantities.GRID_FREQUENCY,
         },
+      ];
+
+      this.selectedNodes = [
+        { label: 'Current', data: ElectricQuantities.CURRENT },
       ];
     } else {
       this.selectionMode = 'checkbox';
@@ -88,18 +92,10 @@ export class ElectricDataTreeSelectComponent implements OnInit {
   }
 
   public onNodeSelect(): void {
-    if (this.selectionMode === 'checkbox') {
-      this.changeSelectable(false);
-    }
-
     this.onSelectedNodesChange();
   }
 
   public onNodeUnselect(): void {
-    if (this.selectionMode === 'checkbox') {
-      this.changeSelectable(true);
-    }
-
     this.onSelectedNodesChange();
   }
 
@@ -108,26 +104,6 @@ export class ElectricDataTreeSelectComponent implements OnInit {
   }
 
   public onSelectedNodesChange(): void {
-    this.selectedNodesChange.emit(
-      this.selectedNodes ? this.selectedNodes.data : ''
-    );
-  }
-
-  private changeSelectable(selectable: boolean) {
-    const selectedNode: TreeNode = this.selectedNodes.at(0) || { data: 'null' }; // so it can enable all nodes
-
-    this.nodes.forEach((node: TreeNode) => {
-      if (node.data === selectedNode.data) {
-        return;
-      }
-
-      node.selectable = selectable;
-
-      if (node.children) {
-        node.children.forEach((child: TreeNode) => {
-          child.selectable = selectable;
-        });
-      }
-    });
+    this.selectedNodesChange.emit(this.selectedNodes ? this.selectedNodes : []);
   }
 }

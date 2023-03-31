@@ -32,7 +32,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
   };
 
   public lineChartSelectedDataOptions: TreeNode[] = [{ data: 'CurrentL1' }];
-  public lineChartSelectedDateOption: string = 'year';
+  public lineChartSelectedDateOption: string = 'live';
   public readonly lineChartListDateOptions: SelectItem[] = [
     { label: 'Live Data', value: 'live' },
     { label: 'Last 24 hours', value: 'day' },
@@ -65,12 +65,12 @@ export class LineChartComponent implements OnInit, OnDestroy {
 
   public ngOnDestroy(): void {
     this.unsubscribeFromElectricSubscription();
-    this.stopLiveTemperatureInterval();
+    this.stopLiveElectricInterval();
   }
 
   public onDateRangeSelect(): void {
     this.lineChartSelectedDateOption = '';
-    this.stopLiveTemperatureInterval();
+    this.stopLiveElectricInterval();
     this.unsubscribeFromElectricSubscription();
     this.lineChart?.showLoading();
     this.clearElectricGroupeData();
@@ -200,6 +200,8 @@ export class LineChartComponent implements OnInit, OnDestroy {
           break;
       }
     });
+
+    this.onDateOptionChange();
   }
 
   public onDateOptionChange(): void {
@@ -207,12 +209,12 @@ export class LineChartComponent implements OnInit, OnDestroy {
     this.clearElectricGroupeData();
     this.lineChart?.showLoading();
     this.rangeDates = [new Date()];
-    this.stopLiveTemperatureInterval();
+    this.stopLiveElectricInterval();
 
     switch (this.lineChartSelectedDateOption) {
       case 'live':
-        // this.getLiveTemperature();
-        // this.startLiveTemperatureInterval();
+        this.getLiveElectricData();
+        this.startLiveElectricInterval();
         break;
       case 'day':
         this.loadDataForPeriod(LineChartComponent.MILLISECONDS_IN_DAY);
@@ -227,7 +229,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
         this.loadDataForPeriod(365 * LineChartComponent.MILLISECONDS_IN_DAY);
         break;
       default:
-        // this.startLiveTemperatureInterval();
+        this.startLiveElectricInterval();
         break;
     }
   }
@@ -457,7 +459,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
             );
           }
 
-        if (this.currentPhases.includes(ElectricPhase.L2)) {
+        if (this.voltagePhases.includes(ElectricPhase.L2)) {
           series.push(
             {
               name: 'Min L2 voltage',
@@ -498,7 +500,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
           );
         }
 
-        if (this.currentPhases.includes(ElectricPhase.L3)) {
+        if (this.voltagePhases.includes(ElectricPhase.L3)) {
           series.push(
             {
               name: 'Min L3 voltage',
@@ -583,21 +585,30 @@ export class LineChartComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.lineChart.setOption({
-      xAxis: {
-        type: 'time',
-        splitLine: {
-          show: true,
+    this.lineChart.setOption(
+      {
+        legend: {
+          backgroundColor: '#121212',
+          textStyle: {
+            color: 'white',
+          },
         },
-      },
-      yAxis: {
-        type: 'value',
-        splitLine: {
-          show: false,
+        xAxis: {
+          type: 'time',
+          splitLine: {
+            show: true,
+          },
         },
+        yAxis: {
+          type: 'value',
+          splitLine: {
+            show: false,
+          },
+        },
+        series: series,
       },
-      series: series,
-    });
+      true
+    ); // is data are empty, noMerge is set to true - series will reset
     this.lineChart.hideLoading();
   }
 
@@ -646,21 +657,32 @@ export class LineChartComponent implements OnInit, OnDestroy {
     }
   }
 
-  private stopLiveTemperatureInterval(): void {
+  private stopLiveElectricInterval(): void {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = undefined;
     }
   }
 
-  private startLiveTemperatureInterval(): void {
+  private startLiveElectricInterval(): void {
     this.lineChart?.hideLoading();
     this.intervalId = setInterval(() => {
-      this.getLiveElectricData(); //TODO dorobit
+      this.getLiveElectricData();
     }, 10000);
   }
   private getLiveElectricData(): void {
-    throw new Error('Method not implemented.');
+    this.unsubscribeFromElectricSubscription();
+    this.lineChartElectricSubscription = this.electricService
+      .getAllElectricQuantitiesFromDate(
+        new Date(),
+        this.electricQuantities,
+        this.currentPhases,
+        this.voltagePhases
+      )
+      .subscribe((data: ElectricDataMinMaxMean) => {
+        this.electricGroupedData = data;
+        this.updateChartWithElectricData();
+      });
   }
 
   public onLineChartInit(chart: any): void {

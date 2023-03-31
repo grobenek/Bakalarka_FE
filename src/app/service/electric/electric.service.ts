@@ -153,7 +153,6 @@ export class ElectricService {
     currentPhaseFilters?: ElectricPhase[],
     voltagePhaseFilters?: ElectricPhase[]
   ): Observable<ElectricDataMinMaxMean> {
-    console.log('Service fetch data called');
     const startIsoString: string = encodeURIComponent(startDate.toISOString());
     const endIsoString: string = encodeURIComponent(endDate.toISOString());
     const url: string =
@@ -188,6 +187,7 @@ export class ElectricService {
     currentPhaseFilters?: ElectricPhase[],
     voltagePhaseFilters?: ElectricPhase[]
   ): Observable<ElectricDataMinMaxMean> {
+    console.log('Service fetch data called');
     const startDateIsoString: string = encodeURIComponent(
       startDate.toISOString()
     );

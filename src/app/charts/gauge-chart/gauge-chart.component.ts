@@ -28,7 +28,7 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
   public async ngOnInit(): Promise<void> {
     this.initializeChartOptions();
     await this.waitUntilGaugeChartInitialized();
-    this.onSelectedNodesChange([{ data: 'VoltageL1' }]);
+    this.onSelectedNodesChange([{ data: 'CurrentL1' }]);
     this.startLiveElectricDataInterval();
   }
 

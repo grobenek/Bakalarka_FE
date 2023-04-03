@@ -22,7 +22,7 @@ export class ElectricService {
   ) {}
 
   public getLastElectricQuantity(
-    electricQuantities: ElectricQuantities[],
+    electricQuantity: ElectricQuantities,
     currentPhaseFilters?: ElectricPhase[],
     voltagePhaseFilters?: ElectricPhase[]
   ): Observable<GaugeElectricData> {
@@ -35,7 +35,7 @@ export class ElectricService {
       : '';
 
     const params = new HttpParams()
-      .set('electricQuantities', electricQuantities.join(','))
+      .set('electricQuantities', electricQuantity)
       .set('currentPhaseFilters', currentPhaseFiltersString)
       .set('voltagePhaseFilters', voltagePhaseFiltersString);
 
@@ -88,6 +88,37 @@ export class ElectricService {
     const endIsoString = encodeURIComponent(endDate.toISOString());
     const url: string = this.url + `/between/${startIsoString}/${endIsoString}`;
 
+    const currentPhaseFiltersString = currentPhaseFilters
+      ? currentPhaseFilters.join(',')
+      : '';
+    const voltagePhaseFiltersString = voltagePhaseFilters
+      ? voltagePhaseFilters.join(',')
+      : '';
+
+    const params = new HttpParams()
+      .set('electricQuantities', electricQuantities.join(','))
+      .set('currentPhaseFilters', currentPhaseFiltersString)
+      .set('voltagePhaseFilters', voltagePhaseFiltersString);
+
+    return this.http.get<ElectricData>(url, { params }).pipe(
+      catchError((error: Error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Server error has occurred',
+          closable: false,
+        });
+        return throwError(() => error);
+      })
+    );
+  }
+
+  public getLastNValues(
+    count: number,
+    electricQuantities: ElectricQuantities[],
+    currentPhaseFilters?: ElectricPhase[],
+    voltagePhaseFilters?: ElectricPhase[]
+  ): Observable<ElectricData> {
+    const url: string = this.url + `/last/${count}`;
     const currentPhaseFiltersString = currentPhaseFilters
       ? currentPhaseFilters.join(',')
       : '';
@@ -187,7 +218,6 @@ export class ElectricService {
     currentPhaseFilters?: ElectricPhase[],
     voltagePhaseFilters?: ElectricPhase[]
   ): Observable<ElectricDataMinMaxMean> {
-    console.log('Service fetch data called');
     const startDateIsoString: string = encodeURIComponent(
       startDate.toISOString()
     );

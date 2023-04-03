@@ -9,7 +9,10 @@ import {
   Voltage,
 } from '../../interface/electric-quantities';
 import { ElectricPhase } from '../../interface/electric-phase';
-import { ElectricDataMinMaxMean } from '../../interface/electric-data';
+import {
+  ElectricData,
+  ElectricDataMinMaxMean,
+} from '../../interface/electric-data';
 import { GridFrequency } from '../../interface/electric-quantities';
 @Component({
   selector: 'app-line-chart',
@@ -30,8 +33,8 @@ export class LineChartComponent implements OnInit, OnDestroy {
     meanGridFrequencies: [],
     maxGridFrequencies: [],
   };
-
-  public lineChartSelectedDataOptions: TreeNode[] = [{ data: 'CurrentL1' }];
+  public liveData!: ElectricData;
+  public lineChartSelectedDataOptions: TreeNode[] = [];
   public lineChartSelectedDateOption: string = 'live';
   public readonly lineChartListDateOptions: SelectItem[] = [
     { label: 'Live Data', value: 'live' },
@@ -40,10 +43,8 @@ export class LineChartComponent implements OnInit, OnDestroy {
     { label: 'Past 30 Days', value: '30days' },
     { label: 'Past Year', value: 'year' },
   ];
-  private electricQuantities: ElectricQuantities[] = [
-    ElectricQuantities.CURRENT,
-  ];
-  private currentPhases: ElectricPhase[] = [ElectricPhase.L1];
+  private electricQuantities: ElectricQuantities[] = [];
+  private currentPhases: ElectricPhase[] = [];
   private voltagePhases: ElectricPhase[] = [];
   private lineChartElectricSubscription!: Subscription;
   private intervalId: any;
@@ -51,6 +52,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
   private static readonly MILLISECONDS_IN_HOUR = 60 * 60 * 1000;
   private static readonly MILLISECONDS_IN_DAY =
     24 * LineChartComponent.MILLISECONDS_IN_HOUR;
+  private readonly MAXIMUM_NUMBER_OF_POINTS_IN_CHART = 400;
 
   constructor(
     private electricService: ElectricService,
@@ -119,12 +121,18 @@ export class LineChartComponent implements OnInit, OnDestroy {
     }
   }
 
-  public onSelectedNodesChange(data: TreeNode[]) {
+  public async onSelectedNodesChange(data: TreeNode[]) {
     this.lineChartSelectedDataOptions = data;
 
     this.electricQuantities = [];
     this.currentPhases = [];
     this.voltagePhases = [];
+
+    if (!this.lineChart) {
+      await this.waitUntilChartInitialized();
+    }
+
+    this.resetChartLegend();
 
     data.forEach((node: TreeNode) => {
       switch (node.data) {
@@ -188,20 +196,70 @@ export class LineChartComponent implements OnInit, OnDestroy {
         }
 
         case 'Grid frequency': {
-          if (this.electricQuantities.includes(ElectricQuantities.CURRENT)) {
+          console.log('Grid frequency detected');
+          if (
+            this.electricQuantities.includes(ElectricQuantities.GRID_FREQUENCY)
+          ) {
+            console.log('GRid fequenct already in quantities, skiping');
             return;
           }
-
           this.electricQuantities.push(ElectricQuantities.GRID_FREQUENCY);
           break;
         }
-
         default:
           break;
       }
     });
 
+    // if (this.lineChartSelectedDateOption === 'live') {
+    //   this.stopLiveElectricInterval();
+    //   this.getLiveElectricData();
+    //   this.startLiveElectricInterval();
+    // } else {
+    //   this.onDateOptionChange();
+    // } // NEVIEM CI TO POJDE BEZ TOHO
     this.onDateOptionChange();
+  }
+
+  private resetChartLegend(): void {
+    this.lineChart.setOption(
+      {
+        legend: {
+          backgroundColor: '#121212',
+          textStyle: {
+            color: 'white',
+          },
+        },
+        xAxis: {
+          type: 'time',
+          splitLine: {
+            show: true,
+          },
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: {
+            show: false,
+          },
+        },
+        series: [],
+        dataZoom: [
+          {
+            show: true,
+            type: 'slider',
+          },
+          {
+            type: 'inside',
+          },
+        ],
+        axisPointer: {
+          animation: true,
+          show: true,
+        },
+        darkMode: 'auto',
+      },
+      true
+    );
   }
 
   public onDateOptionChange(): void {
@@ -286,7 +344,11 @@ export class LineChartComponent implements OnInit, OnDestroy {
     );
   }
 
-  private updateChartWithElectricData(): void {
+  private async updateChartWithElectricData(): Promise<void> {
+    if (!this.lineChart) {
+      await this.waitUntilChartInitialized();
+    }
+
     let series: any[] = [];
 
     switch (this.electricQuantities?.at(0)) {
@@ -606,15 +668,37 @@ export class LineChartComponent implements OnInit, OnDestroy {
           },
         },
         series: series,
+        dataZoom: [
+          {
+            show: true,
+            type: 'slider',
+          },
+          {
+            type: 'inside',
+          },
+        ],
+        axisPointer: {
+          animation: true,
+          show: true,
+        },
+        darkMode: 'auto',
       },
       true
-    ); // is data are empty, noMerge is set to true - series will reset
+    );
+
+    this.lineChart.setOption({
+      legend: {
+        backgroundColor: '#121212',
+        textStyle: {
+          color: 'white',
+        },
+      },
+    });
     this.lineChart.hideLoading();
   }
 
   private initializeOptions(): void {
     this.lineChartOptions = {
-      tooltip: {},
       legend: {
         backgroundColor: '#121212',
         textStyle: {
@@ -668,21 +752,176 @@ export class LineChartComponent implements OnInit, OnDestroy {
     this.lineChart?.hideLoading();
     this.intervalId = setInterval(() => {
       this.getLiveElectricData();
-    }, 10000);
+    }, 5000);
   }
+
   private getLiveElectricData(): void {
     this.unsubscribeFromElectricSubscription();
+
     this.lineChartElectricSubscription = this.electricService
-      .getAllElectricQuantitiesFromDate(
-        new Date(),
+      .getLastNValues(
+        this.MAXIMUM_NUMBER_OF_POINTS_IN_CHART,
         this.electricQuantities,
         this.currentPhases,
         this.voltagePhases
       )
-      .subscribe((data: ElectricDataMinMaxMean) => {
-        this.electricGroupedData = data;
-        this.updateChartWithElectricData();
+      .subscribe((data: ElectricData) => {
+        this.liveData = data;
+        this.updateChartWithLiveData();
       });
+  }
+
+  private async updateChartWithLiveData(): Promise<void> {
+    if (!this.lineChart) {
+      await this.waitUntilChartInitialized();
+    }
+
+    let series: any[] = [];
+
+    if (this.electricQuantities.includes(ElectricQuantities.CURRENT)) {
+      if (this.currentPhases.includes(ElectricPhase.L1)) {
+        series.push({
+          name: 'L1 Current',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.liveData.currents
+            .filter((current: Current) => current.phase === ElectricPhase.L1)
+            .map((data: Current) => [
+              new Date(data.time).getTime(),
+              data.current,
+            ]),
+        });
+      }
+
+      if (this.currentPhases.includes(ElectricPhase.L2)) {
+        series.push({
+          name: 'L2 Current',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.liveData.currents
+            .filter((current: Current) => current.phase === ElectricPhase.L2)
+            .map((data: Current) => [
+              new Date(data.time).getTime(),
+              data.current,
+            ]),
+        });
+      }
+
+      if (this.currentPhases.includes(ElectricPhase.L3)) {
+        series.push({
+          name: 'L3 Current',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.liveData.currents
+            .filter((current: Current) => current.phase === ElectricPhase.L3)
+            .map((data: Current) => [
+              new Date(data.time).getTime(),
+              data.current,
+            ]),
+        });
+      }
+    }
+
+    if (this.electricQuantities.includes(ElectricQuantities.GRID_FREQUENCY)) {
+      series.push({
+        name: 'Grid Frequency',
+        type: 'line',
+        showSymbol: false,
+        areaStyle: {},
+        data: this.liveData.gridFrequencies.map(
+          (gridFrequency: GridFrequency) => [
+            new Date(gridFrequency.time).getTime(),
+            gridFrequency.frequency,
+          ]
+        ),
+      });
+    }
+
+    if (this.electricQuantities.includes(ElectricQuantities.VOLTAGE)) {
+      if (this.voltagePhases.includes(ElectricPhase.L1)) {
+        series.push({
+          name: 'L1 Voltage',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.liveData.voltages
+            .filter((voltage: Voltage) => voltage.phase === ElectricPhase.L1)
+            .map((data: Voltage) => [
+              new Date(data.time).getTime(),
+              data.voltage,
+            ]),
+        });
+      }
+
+      if (this.voltagePhases.includes(ElectricPhase.L2)) {
+        series.push({
+          name: 'L2 Voltage',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.liveData.voltages
+            .filter((voltage: Voltage) => voltage.phase === ElectricPhase.L2)
+            .map((data: Voltage) => [
+              new Date(data.time).getTime(),
+              data.voltage,
+            ]),
+        });
+      }
+
+      if (this.voltagePhases.includes(ElectricPhase.L3)) {
+        series.push({
+          name: 'L3 Voltage',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.liveData.voltages
+            .filter((voltage: Voltage) => voltage.phase === ElectricPhase.L3)
+            .map((data: Voltage) => [
+              new Date(data.time).getTime(),
+              data.voltage,
+            ]),
+        });
+      }
+    }
+
+    this.lineChart.setOption({
+      legend: {
+        backgroundColor: '#121212',
+        textStyle: {
+          color: 'white',
+        },
+      },
+      xAxis: {
+        type: 'time',
+        splitLine: {
+          show: true,
+        },
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: {
+          show: false,
+        },
+      },
+      series: series,
+      dataZoom: [
+        {
+          show: true,
+          type: 'slider',
+        },
+        {
+          type: 'inside',
+        },
+      ],
+      axisPointer: {
+        animation: true,
+        show: true,
+      },
+      darkMode: 'auto',
+    });
   }
 
   public onLineChartInit(chart: any): void {

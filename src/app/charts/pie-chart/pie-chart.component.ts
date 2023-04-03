@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { EChartsOption } from 'echarts';
+import { SelectItem, TreeNode } from 'primeng/api';
 
 @Component({
   selector: 'app-pie-chart',
@@ -7,6 +8,17 @@ import { EChartsOption } from 'echarts';
   styleUrls: ['./pie-chart.component.scss'],
 })
 export class PieChartComponent {
+  public rangeDates: Date[] = [new Date()]; // initializing calendar's choice
+  public lineChartSelectedDataOptions: TreeNode[] = [];
+  public lineChartSelectedDateOption: string = 'live';
+  public readonly lineChartListDateOptions: SelectItem[] = [
+    { label: 'Live Data', value: 'live' },
+    { label: 'Last 24 hours', value: 'day' },
+    { label: 'Past 7 Days', value: '7days' },
+    { label: 'Past 30 Days', value: '30days' },
+    { label: 'Past Year', value: 'year' },
+  ]
+
   public option: EChartsOption = {
     tooltip: {
       trigger: 'item',
@@ -52,4 +64,16 @@ export class PieChartComponent {
       },
     ],
   };
+
+  public onSelectedNodesChange(selectedData: TreeNode[]): void {
+
+  }
+
+  public onDateRangeSelect(): void {
+
+  }
+
+  public onDateOptionChange(): void {
+
+  }
 }

@@ -1,8 +1,39 @@
 <div>
-  <div
-  echarts
-  (autoResize)="(true)"
-  class="chart"
-  [options]="option"
-></div>
-</div>
+  <p-overlayPanel #opDate>
+    <ng-template pTemplate>
+      <div class="flex flex-row column-gap-3">
+        <p-calendar
+          [(ngModel)]="rangeDates"
+          selectionMode="range"
+          [inline]="true"
+          [showButtonBar]="true"
+          (onSelect)="onDateRangeSelect()"
+        ></p-calendar>
+        <p-divider layout="vertical"></p-divider>
+        <div>
+          <p-listbox
+            [options]="lineChartListDateOptions"
+            (onClick)="onDateOptionChange()"
+            [(ngModel)]="lineChartSelectedDateOption"
+            optionLabel="label"
+            optionValue="value"
+          ></p-listbox>
+        </div>
+      </div>
+    </ng-template>
+  </p-overlayPanel>
+  <div class="flex flex-row column-gap-3">
+    <button
+      type="text"
+      pButton
+      label="Date"
+      icon="pi pi-calendar"
+      (click)="opDate.toggle($event)"
+    ></button>
+    <app-electric-data-tree-select
+      [onlyOneOption]="true"
+      (selectedNodesChange)="onSelectedNodesChange($event)"
+    ></app-electric-data-tree-select>
+  </div>
+    <div echarts (autoResize)="(true)" class="chart" [options]="option"></div>
+  </div>

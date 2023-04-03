@@ -14,26 +14,72 @@ export class ElectricDataTreeSelectComponent implements OnInit {
   public nodes!: TreeNode[];
   public selectedNodes!: TreeNode[];
 
+  constructor() {
+    if (!this.onlyOneOption) {
+      this.selectedNodes = [
+        {
+          label: 'L1',
+          data: 'CurrentL1',
+          selectable: true,
+        },
+      ];
+    }
+  }
+
   ngOnInit(): void {
+    this.onSelectedNodesChange();
     if (this.onlyOneOption) {
       this.selectionMode = 'single';
       this.nodes = [
         {
           label: 'Current',
-          data: ElectricQuantities.CURRENT,
+          data: 'Current',
+          selectable: false,
+          children: [
+            {
+              label: 'L1',
+              data: 'CurrentL1',
+              selectable: true,
+            },
+            {
+              label: 'L2',
+              data: 'CurrentL2',
+              selectable: true,
+            },
+            {
+              label: 'L3',
+              data: 'CurrentL3',
+              selectable: true,
+            },
+          ],
         },
         {
           label: 'Voltage',
-          data: ElectricQuantities.VOLTAGE,
+          data: 'Voltage',
+          selectable: false,
+          children: [
+            {
+              label: 'L1',
+              data: 'VoltageL1',
+              selectable: true,
+            },
+            {
+              label: 'L2',
+              data: 'VoltageL2',
+              selectable: true,
+            },
+            {
+              label: 'L3',
+              data: 'VoltageL3',
+              selectable: true,
+            },
+          ],
         },
         {
           label: 'Grid frequency',
-          data: ElectricQuantities.GRID_FREQUENCY,
+          data: 'Grid frequency',
+          selectable: true,
         },
-      ];
-
-      this.selectedNodes = [
-        { label: 'Current', data: ElectricQuantities.CURRENT },
       ];
     } else {
       this.selectionMode = 'checkbox';

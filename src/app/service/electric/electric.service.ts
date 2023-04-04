@@ -88,12 +88,20 @@ export class ElectricService {
     const endIsoString = encodeURIComponent(endDate.toISOString());
     const url: string = this.url + `/between/${startIsoString}/${endIsoString}`;
 
-    const currentPhaseFiltersString = currentPhaseFilters
-      ? currentPhaseFilters.join(',')
-      : '';
-    const voltagePhaseFiltersString = voltagePhaseFilters
-      ? voltagePhaseFilters.join(',')
-      : '';
+    let currentPhaseFiltersString: string = '';
+    let voltagePhaseFiltersString: string = '';
+
+    if (!(currentPhaseFilters?.length === 0)) {
+      currentPhaseFiltersString = currentPhaseFilters
+        ? currentPhaseFilters.join(',')
+        : '';
+    }
+
+    if (!(voltagePhaseFilters?.length === 0)) {
+      voltagePhaseFiltersString = voltagePhaseFilters
+        ? voltagePhaseFilters.join(',')
+        : '';
+    }
 
     const params = new HttpParams()
       .set('electricQuantities', electricQuantities.join(','))

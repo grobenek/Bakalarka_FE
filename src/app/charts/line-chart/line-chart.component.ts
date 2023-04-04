@@ -210,14 +210,6 @@ export class LineChartComponent implements OnInit, OnDestroy {
           break;
       }
     });
-
-    // if (this.lineChartSelectedDateOption === 'live') {
-    //   this.stopLiveElectricInterval();
-    //   this.getLiveElectricData();
-    //   this.startLiveElectricInterval();
-    // } else {
-    //   this.onDateOptionChange();
-    // } // NEVIEM CI TO POJDE BEZ TOHO
     this.onDateOptionChange();
   }
 

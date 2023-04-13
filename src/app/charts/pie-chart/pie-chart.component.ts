@@ -77,8 +77,6 @@ export class PieChartComponent implements OnInit, OnDestroy {
     }
 
     this.resetChartLegend();
-    console.log('resetted');
-    console.log(selectedData as TreeNode);
 
     if (!selectedData) {
       return;
@@ -250,8 +248,6 @@ export class PieChartComponent implements OnInit, OnDestroy {
         []
       )
       .subscribe((data: ElectricDataMinMaxMean) => {
-        console.log('Data: ' + JSON.stringify(data, null, 2));
-
         if (data.meanCurrents) {
           this.pieChartData.currents = data.meanCurrents;
         }
@@ -266,8 +262,6 @@ export class PieChartComponent implements OnInit, OnDestroy {
 
   private updatePieChart(): void {
     let series = [];
-
-    console.log(this.pieChartData);
 
     if (!(this.pieChartData.currents.length === 0)) {
       series.push(
@@ -357,8 +351,6 @@ export class PieChartComponent implements OnInit, OnDestroy {
     }
 
     this.pieChart?.hideLoading();
-
-    console.log(series);
 
     this.pieChart.setOption({
       series: series,

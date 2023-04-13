@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ECharts, EChartsOption } from 'echarts';
-import { Subscription } from 'rxjs';
+import { Subscription, max } from 'rxjs';
 import { MessageService, SelectItem, TreeNode } from 'primeng/api';
 import { ElectricService } from '../../service/electric/electric.service';
 import {
@@ -196,11 +196,9 @@ export class LineChartComponent implements OnInit, OnDestroy {
         }
 
         case 'Grid frequency': {
-          console.log('Grid frequency detected');
           if (
             this.electricQuantities.includes(ElectricQuantities.GRID_FREQUENCY)
           ) {
-            console.log('GRid fequenct already in quantities, skiping');
             return;
           }
           this.electricQuantities.push(ElectricQuantities.GRID_FREQUENCY);
@@ -263,6 +261,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
 
     switch (this.lineChartSelectedDateOption) {
       case 'live':
+        this.resetChartLegend();
         this.getLiveElectricData();
         this.startLiveElectricInterval();
         break;
@@ -478,7 +477,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
                 name: 'Min L1 voltage',
                 type: 'line',
                 showSymbol: false,
-                areaStyle: {},
+                // areaStyle: {},
                 data: this.electricGroupedData.minVoltages
                   .filter((data: Voltage) => data.phase === ElectricPhase.L1)
                   .map((data: Voltage) => [
@@ -490,7 +489,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
                 name: 'Mean L1 voltage',
                 type: 'line',
                 showSymbol: false,
-                areaStyle: {},
+                // areaStyle: {},
                 data: this.electricGroupedData.meanVoltages
                   .filter((data: Voltage) => data.phase === ElectricPhase.L1)
                   .map((data: Voltage) => [
@@ -502,7 +501,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
                 name: 'Max L1 voltage',
                 type: 'line',
                 showSymbol: false,
-                areaStyle: {},
+                // areaStyle: {},
                 data: this.electricGroupedData.maxVoltages
                   .filter((data: Voltage) => data.phase === ElectricPhase.L1)
                   .map((data: Voltage) => [
@@ -519,7 +518,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
               name: 'Min L2 voltage',
               type: 'line',
               showSymbol: false,
-              areaStyle: {},
+              // areaStyle: {},
               data: this.electricGroupedData.minVoltages
                 .filter((data: Voltage) => data.phase === ElectricPhase.L2)
                 .map((data: Voltage) => [
@@ -531,7 +530,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
               name: 'Mean L2 voltage',
               type: 'line',
               showSymbol: false,
-              areaStyle: {},
+              // areaStyle: {},
               data: this.electricGroupedData.meanVoltages
                 .filter((data: Voltage) => data.phase === ElectricPhase.L2)
                 .map((data: Voltage) => [
@@ -543,7 +542,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
               name: 'Max L2 voltage',
               type: 'line',
               showSymbol: false,
-              areaStyle: {},
+              // areaStyle: {},
               data: this.electricGroupedData.maxVoltages
                 .filter((data: Voltage) => data.phase === ElectricPhase.L2)
                 .map((data: Voltage) => [
@@ -560,7 +559,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
               name: 'Min L3 voltage',
               type: 'line',
               showSymbol: false,
-              areaStyle: {},
+              // areaStyle: {},
               data: this.electricGroupedData.minVoltages
                 .filter((data: Voltage) => data.phase === ElectricPhase.L3)
                 .map((data: Voltage) => [
@@ -572,7 +571,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
               name: 'Mean L3 voltage',
               type: 'line',
               showSymbol: false,
-              areaStyle: {},
+              // areaStyle: {},
               data: this.electricGroupedData.meanVoltages
                 .filter((data: Voltage) => data.phase === ElectricPhase.L3)
                 .map((data: Voltage) => [
@@ -584,7 +583,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
               name: 'Max L3 voltage',
               type: 'line',
               showSymbol: false,
-              areaStyle: {},
+              // areaStyle: {},
               data: this.electricGroupedData.maxVoltages
                 .filter((data: Voltage) => data.phase === ElectricPhase.L3)
                 .map((data: Voltage) => [
@@ -602,7 +601,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
             name: 'Min grid frequencies',
             type: 'line',
             showSymbol: false,
-            areaStyle: {},
+            // areaStyle: {},
             data: this.electricGroupedData.minGridFrequencies.map(
               (data: GridFrequency) => [
                 new Date(data.time).getTime(),
@@ -614,7 +613,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
             name: 'Mean grid frequencies',
             type: 'line',
             showSymbol: false,
-            areaStyle: {},
+            // areaStyle: {},
             data: this.electricGroupedData.meanGridFrequencies.map(
               (data: GridFrequency) => [
                 new Date(data.time).getTime(),
@@ -626,7 +625,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
             name: 'Max grid frequencies',
             type: 'line',
             showSymbol: false,
-            areaStyle: {},
+            // areaStyle: {},
             data: this.electricGroupedData.maxGridFrequencies.map(
               (data: GridFrequency) => [
                 new Date(data.time).getTime(),
@@ -637,6 +636,26 @@ export class LineChartComponent implements OnInit, OnDestroy {
         );
         break;
       }
+    }
+
+    let minValue = 0;
+    let maxValue = 0;
+
+    switch (this.electricQuantities.at(0)) {
+      case ElectricQuantities.CURRENT:
+        minValue = -40;
+        maxValue = 40;
+        break;
+      case ElectricQuantities.VOLTAGE:
+        minValue = 209;
+        maxValue = 253;
+        break;
+      case ElectricQuantities.GRID_FREQUENCY:
+        minValue = 49.8;
+        maxValue = 50.2;
+        break;
+      default:
+        break;
     }
 
     this.lineChart.setOption(
@@ -655,6 +674,8 @@ export class LineChartComponent implements OnInit, OnDestroy {
         },
         yAxis: {
           type: 'value',
+          min: minValue,
+          max: maxValue,
           splitLine: {
             show: false,
           },
@@ -838,7 +859,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
           name: 'L1 Voltage',
           type: 'line',
           showSymbol: false,
-          areaStyle: {},
+          // areaStyle: {},
           data: this.liveData.voltages
             .filter((voltage: Voltage) => voltage.phase === ElectricPhase.L1)
             .map((data: Voltage) => [
@@ -853,7 +874,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
           name: 'L2 Voltage',
           type: 'line',
           showSymbol: false,
-          areaStyle: {},
+          // areaStyle: {},
           data: this.liveData.voltages
             .filter((voltage: Voltage) => voltage.phase === ElectricPhase.L2)
             .map((data: Voltage) => [
@@ -868,7 +889,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
           name: 'L3 Voltage',
           type: 'line',
           showSymbol: false,
-          areaStyle: {},
+          // areaStyle: {},
           data: this.liveData.voltages
             .filter((voltage: Voltage) => voltage.phase === ElectricPhase.L3)
             .map((data: Voltage) => [
@@ -877,6 +898,26 @@ export class LineChartComponent implements OnInit, OnDestroy {
             ]),
         });
       }
+    }
+
+    let minValue = 0;
+    let maxValue = 0;
+
+    switch (this.electricQuantities.at(0)) {
+      case ElectricQuantities.CURRENT:
+        minValue = -40;
+        maxValue = 40;
+        break;
+      case ElectricQuantities.VOLTAGE:
+        minValue = 209;
+        maxValue = 253;
+        break;
+      case ElectricQuantities.GRID_FREQUENCY:
+        minValue = 49.8;
+        maxValue = 50.2;
+        break;
+      default:
+        break;
     }
 
     this.lineChart.setOption({
@@ -894,6 +935,8 @@ export class LineChartComponent implements OnInit, OnDestroy {
       },
       yAxis: {
         type: 'value',
+        min: minValue,
+        max: maxValue,
         splitLine: {
           show: false,
         },

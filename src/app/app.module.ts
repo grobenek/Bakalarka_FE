@@ -1,4 +1,4 @@
-import { HttpClientModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -24,14 +24,15 @@ import { RegisterFormComponent } from './pages/register-form/register-form.compo
 import { DropdownModule } from 'primeng/dropdown';
 import { GaugeChartComponent } from './charts/gauge-chart/gauge-chart.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
-import {OverlayPanelModule} from 'primeng/overlaypanel';
-import {CalendarModule} from 'primeng/calendar';
-import {ListboxModule} from 'primeng/listbox';
+import { OverlayPanelModule } from 'primeng/overlaypanel';
+import { CalendarModule } from 'primeng/calendar';
+import { ListboxModule } from 'primeng/listbox';
 import { PieChartComponent } from './charts/pie-chart/pie-chart.component';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TreeSelectModule } from 'primeng/treeselect';
 import { TreeModule } from 'primeng/tree';
 import { ElectricDataTreeSelectComponent } from './components/electric-data-tree-select/electric-data-tree-select.component';
+import { JwtInterceptor } from './interceptors/jwt.interceptor';
 
 @NgModule({
   declarations: [
@@ -69,9 +70,13 @@ import { ElectricDataTreeSelectComponent } from './components/electric-data-tree
     ListboxModule,
     CheckboxModule,
     TreeSelectModule,
-    TreeModule
+    TreeModule,
   ],
-  providers: [DatePipe, MessageService],
+  providers: [
+    DatePipe,
+    MessageService,
+    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
+  ],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

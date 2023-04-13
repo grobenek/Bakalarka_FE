@@ -40,9 +40,10 @@ export class LoginFormComponent implements OnDestroy {
     });
   }
 
-  handleLoginResult(result: boolean): void {
+  handleLoginResult(result: boolean, jwtToken: string): void {
     if (result) {
       this.userService.setUserLoggedIn(result);
+      this.userService.setJwtToken(jwtToken);
       this.router.navigate(['dashboard']);
     } else {
       this.messageService.add({
@@ -88,10 +89,10 @@ export class LoginFormComponent implements OnDestroy {
         })
       )
       .subscribe({
-        next: (resultApi: string | boolean) => {
-          if (typeof resultApi === 'boolean') {
-            this.handleLoginResult(resultApi);
-          }
+        next: (response: any) => {
+          const jwtToken = response.headers.get('Authorization');
+
+          this.handleLoginResult(response.body, jwtToken);
         },
         complete: () => {
           this.isLoading = false;

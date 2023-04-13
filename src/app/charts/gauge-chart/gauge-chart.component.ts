@@ -80,13 +80,13 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
           axisLabel: {
             color: 'inherit',
             distance: 35,
-            fontSize: 16,
+            fontSize: 15,
           },
           detail: {
             valueAnimation: true,
             formatter: this.getFormatter(this.selectedData || null),
             color: 'inherit',
-            fontSize: 16,
+            fontSize: 15,
           },
           data: [
             {
@@ -223,10 +223,34 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
       await this.waitUntilGaugeChartInitialized();
     }
 
+    let minValue = 0;
+    let maxValue = 0;
+
+    switch (this.electricQuantities.at(0)) {
+      case ElectricQuantities.CURRENT:
+        minValue = -40;
+        maxValue = 40;
+        break;
+      case ElectricQuantities.VOLTAGE:
+        minValue = 209;
+        maxValue = 253;
+        break;
+      case ElectricQuantities.GRID_FREQUENCY:
+        minValue = 49.8;
+        maxValue = 50.2;
+        break;
+      default:
+        minValue = 0;
+        maxValue = 0;
+        break;
+    }
+
     this.gaugeChart.setOption({
       series: [
         {
           name: 'GaugeElectricData',
+          min: minValue,
+          max: maxValue,
           detail: {
             formatter: this.getFormatter(this.selectedData || null),
           },

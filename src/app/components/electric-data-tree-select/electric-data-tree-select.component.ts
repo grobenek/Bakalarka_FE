@@ -1,6 +1,5 @@
 import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
 import { TreeNode } from 'primeng/api';
-import { Tree } from 'primeng/tree';
 @Component({
   selector: 'app-electric-data-tree-select',
   templateUrl: './electric-data-tree-select.component.html',

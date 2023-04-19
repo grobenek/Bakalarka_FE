@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ECharts, EChartsOption } from 'echarts';
-import { Subscription, max } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { MessageService, SelectItem, TreeNode } from 'primeng/api';
 import { ElectricService } from '../../service/electric/electric.service';
 import {

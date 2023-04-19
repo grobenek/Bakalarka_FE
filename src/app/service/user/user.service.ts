@@ -1,11 +1,10 @@
 import {
   HttpClient,
-  HttpErrorResponse,
   HttpResponse,
 } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { UserLoginDetails } from '../../interface/user-login-details';
-import { Observable, Subject, catchError, throwError } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { UserRegisterDetails } from '../../interface/user-register-details';
 import { UserInfoWithoutPassword } from '../../interface/user-info-without-password';
 

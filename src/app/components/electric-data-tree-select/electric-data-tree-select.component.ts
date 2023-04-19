@@ -1,7 +1,6 @@
-import { ElectricQuantities } from './../../interface/electric-quantities';
 import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
 import { TreeNode } from 'primeng/api';
-import { last } from 'rxjs';
+import { Tree } from 'primeng/tree';
 @Component({
   selector: 'app-electric-data-tree-select',
   templateUrl: './electric-data-tree-select.component.html',
@@ -20,26 +19,6 @@ export class ElectricDataTreeSelectComponent implements OnInit {
   constructor() {}
 
   ngOnInit(): void {
-    if (!this.onlyOneOption) {
-      this.selectedNodes = [
-        {
-          label: 'L1',
-          data: 'CurrentL1',
-          selectable: true,
-        },
-      ];
-    }
-
-    if (this.onlyParents) {
-      this.selectedNodes = [
-        {
-          label: 'Current',
-          data: 'Current',
-          selectable: true,
-        },
-      ];
-    }
-
     this.onSelectedNodesChange();
     if (this.onlyOneOption) {
       this.selectionMode = 'single';
@@ -164,17 +143,68 @@ export class ElectricDataTreeSelectComponent implements OnInit {
         },
       ];
     }
+
+    if (!this.onlyOneOption) {
+      if (this.nodes[0].children != undefined) {
+        this.selectedNodes = [this.nodes[0].children[0]];
+        this.onSelectedNodesChange();
+      } else {
+        this.selectedNodes = [this.nodes[0]];
+        this.onSelectedNodesChange();
+      }
+    }
+
+    if (this.onlyParents) {
+      this.selectedNodes = [this.nodes[0]];
+      this.onSelectedNodesChange();
+    }
   }
 
-  public onNodeSelect(): void {
+  public onNodeSelect(event: any): void {
+    const selectedNode = this.selectedNodes ? this.selectedNodes[0] : undefined;
+    const eventChildren = event.node.children;
+    const eventLabel = event.node.label;
+    const eventParent = event.node.parent;
+
+    if (this.onlyOneOption) {
+      return;
+    }
+
+    if (!selectedNode) {
+      this.onSelectedNodesChange();
+      return;
+    }
+
+    if (eventChildren && selectedNode.label !== eventLabel) {
+      this.selectedNodes = this.selectedNodes.filter(function (node: TreeNode) {
+        return !eventChildren.includes(node);
+      });
+      this.selectedNodes.pop();
+      return;
+    }
+
+    if (!eventParent && selectedNode.label !== eventLabel) {
+      this.selectedNodes.pop();
+      return;
+    }
+
+    if (selectedNode.parent && selectedNode.parent.label !== eventParent.label) {
+      if (eventParent) {
+        eventParent.partialSelected = false;
+      }
+      this.selectedNodes.pop();
+      return;
+    }
+
     this.onSelectedNodesChange();
   }
 
-  public onNodeUnselect(): void {
+  public onNodeUnselect(event: any): void {
     this.onSelectedNodesChange();
   }
 
   public onNodeClear(): void {
+    this.selectedNodes = [];
     this.onSelectedNodesChange();
   }
 

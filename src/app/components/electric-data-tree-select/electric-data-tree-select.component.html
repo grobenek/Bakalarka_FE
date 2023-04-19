@@ -4,8 +4,8 @@
       <p-treeSelect
         containerStyleClass="w-full"
         [showClear]="showClear"
-        (onNodeSelect)="onNodeSelect()"
-        (onNodeUnselect)="onNodeUnselect()"
+        (onNodeSelect)="onNodeSelect($event)"
+        (onNodeUnselect)="onNodeUnselect($event)"
         (onClear)="onNodeClear()"
         [selectionMode]="selectionMode"
         [(ngModel)]="selectedNodes"

@@ -55,7 +55,7 @@ export class LoginFormComponent implements OnDestroy {
   }
 
   handleError(error: HttpErrorResponse): Observable<string> {
-    console.log('Handling error: ' + JSON.stringify(error, null, 2))
+
     if (error.status === 401) {
       this.messageService.add({
         severity: 'error',

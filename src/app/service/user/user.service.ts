@@ -1,10 +1,12 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpResponse,
+} from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { UserLoginDetails } from '../../interface/user-login-details';
-import { Observable, Subject, catchError, throwError } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { UserRegisterDetails } from '../../interface/user-register-details';
 import { UserInfoWithoutPassword } from '../../interface/user-info-without-password';
-import { MessageService } from 'primeng/api';
 
 @Injectable({
   providedIn: 'root',
@@ -12,10 +14,10 @@ import { MessageService } from 'primeng/api';
 export class UserService {
   private url: string = 'http://localhost:8080/api/user';
   private userLoggedIn: boolean;
+  private jwtToken!: string;
   public userLoggedIn$: Subject<boolean> = new Subject<boolean>();
 
-  constructor(
-    private httpClient: HttpClient  ) {
+  constructor(private httpClient: HttpClient) {
     this.userLoggedIn = localStorage.getItem('userLoggedIn') === 'true';
   }
 
@@ -48,9 +50,25 @@ export class UserService {
     return this.userLoggedIn;
   }
 
-  public verifyUser(userLoginDetails: UserLoginDetails): Observable<boolean> {
+  public setJwtToken(token: string): void {
+    this.jwtToken = token;
+    localStorage.setItem('jwtToken', token);
+  }
+
+  public getJwtToken(): string {
+    if (!this.jwtToken) {
+      this.jwtToken = localStorage.getItem('jwtToken') || '';
+    }
+    return this.jwtToken;
+  }
+
+  public verifyUser(
+    userLoginDetails: UserLoginDetails
+  ): Observable<HttpResponse<boolean>> {
     const validateUrl = this.url + '/verify';
-    return this.httpClient.post<boolean>(validateUrl, userLoginDetails);
+    return this.httpClient.post<boolean>(validateUrl, userLoginDetails, {
+      observe: 'response',
+    });
   }
 
   public registerUser(

@@ -1,8 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ECharts, EChartsOption } from 'echarts';
 import { Subscription } from 'rxjs';
-import { TemperatureService } from 'src/app/service/temperature/temperature.service';
-import { Temperature } from '../../interface/temperature';
+import { ElectricService } from 'src/app/service/electric/electric.service';
+import { GaugeElectricData } from '../../interface/gauge-electric-data';
+import { ElectricQuantities } from 'src/app/interface/electric-quantities';
+import { TreeNode } from 'primeng/api';
+import { ElectricPhase } from 'src/app/interface/electric-phase';
 
 @Component({
   selector: 'app-gauge-chart',
@@ -12,38 +15,42 @@ import { Temperature } from '../../interface/temperature';
 export class GaugeChartComponent implements OnInit, OnDestroy {
   public optionsGaugeChart!: EChartsOption;
   public gaugeData: number = 0;
-  private gaugeChartTemperatureSubscription!: Subscription;
+  private gaugeChartElectricSubscription!: Subscription;
   private gaugeChart!: ECharts;
   private intervalId: any;
+  private selectedData: TreeNode<any> | null = null;
+  private currentPhases: ElectricPhase[] = [];
+  private voltagePhases: ElectricPhase[] = [];
+  private electricQuantities: ElectricQuantities[] = [];
 
-  constructor(private temperatureService: TemperatureService) {}
+  constructor(private electriService: ElectricService) {}
 
   public async ngOnInit(): Promise<void> {
     this.initializeChartOptions();
     await this.waitUntilGaugeChartInitialized();
-    this.getLiveTemperature();
-    this.startLiveTemperatureInterval();
+    this.onSelectedNodesChange([{ data: 'CurrentL1' }]);
+    this.startLiveElectricDataInterval();
   }
 
   public ngOnDestroy(): void {
-    this.unsubscribeFromTemperatureService();
-    this.stopLiveTemperatureInterval();
+    this.unsubscribeFromElectricService();
+    this.stopLiveElectricDataInterval();
   }
 
   private initializeChartOptions(): void {
     this.optionsGaugeChart = {
       series: [
         {
-          name: 'GaugeTemperature',
+          name: 'GaugeElectricData',
           min: 0,
-          max: 20,
+          max: 100,
           type: 'gauge',
           axisLine: {
             lineStyle: {
               width: 30,
               color: [
-                [0.3, '#32CD32'],
-                [0.7, '#FFA500'],
+                [0.3, '#91CC75'],
+                [0.7, '#FFDC60'],
                 [1, '#FF0000'],
               ],
             },
@@ -52,6 +59,7 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
             itemStyle: {
               color: 'inherit',
             },
+            length: '60%',
           },
           axisTick: {
             distance: -30,
@@ -71,13 +79,14 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
           },
           axisLabel: {
             color: 'inherit',
-            distance: 40,
-            fontSize: 20,
+            distance: 35,
+            fontSize: 15,
           },
           detail: {
             valueAnimation: true,
-            formatter: '{value} °C',
+            formatter: this.getFormatter(this.selectedData || null),
             color: 'inherit',
+            fontSize: 15,
           },
           data: [
             {
@@ -93,25 +102,112 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
     this.gaugeChart = chart;
   }
 
-  private getLiveTemperature(): void {
-    this.gaugeChartTemperatureSubscription = this.temperatureService
-      .getLastTemperature()
-      .subscribe((temperature: Temperature) => {
-        this.gaugeData = Number(temperature.temperature.toFixed(2));
-        this.unsubscribeFromTemperatureService();
+  async onSelectedNodesChange(selectedData: TreeNode[]): Promise<void> {
+    this.electricQuantities = [];
+    this.currentPhases = [];
+    this.voltagePhases = [];
+
+    if (!selectedData) {
+      return;
+    }
+
+    if (Array.isArray(selectedData)) {
+      if (selectedData.length > 0) {
+        this.selectedData = selectedData[0];
+      } else {
+        this.electricQuantities = [ElectricQuantities.CURRENT];
+        this.currentPhases = [ElectricPhase.L1];
+        this.selectedData = { data: 'CurrentL1' };
+
+        this.updateGaugeChartFormatter();
+        this.stopLiveElectricDataInterval();
+        this.unsubscribeFromElectricService();
+        this.startLiveElectricDataInterval();
+      }
+    } else {
+      this.selectedData = selectedData;
+    }
+
+    switch (this.selectedData.data) {
+      case 'CurrentL1':
+      case 'CurrentL2':
+      case 'CurrentL3': {
+        const phase = this.selectedData.data.replace(
+          'Current',
+          ''
+        ) as ElectricPhase;
+        if (!this.currentPhases.includes(phase)) {
+          this.currentPhases.push(phase);
+        }
+        if (!this.electricQuantities.includes(ElectricQuantities.CURRENT)) {
+          this.electricQuantities.push(ElectricQuantities.CURRENT);
+        }
+        break;
+      }
+
+      case 'VoltageL1':
+      case 'VoltageL2':
+      case 'VoltageL3': {
+        const phase = this.selectedData.data.replace(
+          'Voltage',
+          ''
+        ) as ElectricPhase;
+        if (!this.voltagePhases.includes(phase)) {
+          this.voltagePhases.push(phase);
+        }
+        if (!this.electricQuantities.includes(ElectricQuantities.VOLTAGE)) {
+          this.electricQuantities.push(ElectricQuantities.VOLTAGE);
+        }
+        break;
+      }
+
+      case 'Grid frequency': {
+        if (
+          !this.electricQuantities.includes(ElectricQuantities.GRID_FREQUENCY)
+        ) {
+          this.electricQuantities.push(ElectricQuantities.GRID_FREQUENCY);
+        }
+        break;
+      }
+
+      default:
+        break;
+    }
+    this.stopLiveElectricDataInterval();
+    this.unsubscribeFromElectricService();
+    this.startLiveElectricDataInterval();
+  }
+
+  private getLiveElectricData(): void {
+    if (!this.electricQuantities || this.electricQuantities.length === 0) {
+      return;
+    }
+
+    const electricQuantity = this.electricQuantities[0];
+
+    this.gaugeChartElectricSubscription = this.electriService
+      .getLastElectricQuantity(
+        electricQuantity,
+        this.currentPhases,
+        this.voltagePhases
+      )
+      .subscribe((data: GaugeElectricData) => {
+        this.gaugeData = Number(data.value.toPrecision(4));
         this.updateGaugeChartData();
       });
   }
 
-  private updateGaugeChartData(): void {
+  private async updateGaugeChartData(): Promise<void> {
     if (!this.gaugeChart) {
-      return;
+      await this.waitUntilGaugeChartInitialized();
     }
+
+    this.updateGaugeChartFormatter();
 
     this.gaugeChart.setOption({
       series: [
         {
-          name: 'GaugeTemperature',
+          name: 'GaugeElectricData',
           data: [
             {
               value: this.gaugeData,
@@ -122,17 +218,78 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
     });
   }
 
-  private stopLiveTemperatureInterval(): void {
+  private async updateGaugeChartFormatter(): Promise<void> {
+    if (!this.gaugeChart) {
+      await this.waitUntilGaugeChartInitialized();
+    }
+
+    let minValue = 0;
+    let maxValue = 0;
+
+    switch (this.electricQuantities.at(0)) {
+      case ElectricQuantities.CURRENT:
+        minValue = -40;
+        maxValue = 40;
+        break;
+      case ElectricQuantities.VOLTAGE:
+        minValue = 209;
+        maxValue = 253;
+        break;
+      case ElectricQuantities.GRID_FREQUENCY:
+        minValue = 49.8;
+        maxValue = 50.2;
+        break;
+      default:
+        minValue = 0;
+        maxValue = 0;
+        break;
+    }
+
+    this.gaugeChart.setOption({
+      series: [
+        {
+          name: 'GaugeElectricData',
+          min: minValue,
+          max: maxValue,
+          detail: {
+            formatter: this.getFormatter(this.selectedData || null),
+          },
+        },
+      ],
+    });
+  }
+
+  private getFormatter(selectedData: TreeNode | null): string {
+    if (!selectedData) {
+      return '';
+    }
+
+    if (selectedData.data.includes('Current')) {
+      return '{value}\nA';
+    } else if (selectedData.data.includes('Voltage')) {
+      return '{value}\nV';
+    } else if (selectedData.data === 'Grid frequency') {
+      return '{value}\nHz';
+    } else {
+      return '';
+    }
+  }
+
+  private stopLiveElectricDataInterval(): void {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = undefined;
     }
   }
 
-  private startLiveTemperatureInterval(): void {
+  private startLiveElectricDataInterval(): void {
+    this.stopLiveElectricDataInterval();
+    this.getLiveElectricData();
     this.intervalId = setInterval(() => {
-      this.getLiveTemperature();
-    }, 10000);
+      if (this.selectedData) {
+        this.getLiveElectricData();
+      }
+    }, 5000);
   }
 
   private async waitUntilGaugeChartInitialized(): Promise<void> {
@@ -142,16 +299,15 @@ export class GaugeChartComponent implements OnInit, OnDestroy {
       } else {
         this.onGaugeChartInit = (chart: any) => {
           this.gaugeChart = chart;
-
           resolve();
         };
       }
     });
   }
 
-  private unsubscribeFromTemperatureService(): void {
-    if (this.gaugeChartTemperatureSubscription) {
-      this.gaugeChartTemperatureSubscription.unsubscribe();
+  private unsubscribeFromElectricService(): void {
+    if (this.gaugeChartElectricSubscription) {
+      this.gaugeChartElectricSubscription.unsubscribe();
     }
   }
 }

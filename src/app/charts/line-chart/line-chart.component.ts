@@ -1,11 +1,19 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { TemperatureService } from '../../service/temperature/temperature.service';
-import { Temperature } from 'src/app/interface/temperature';
-import type { ECharts, EChartsOption } from 'echarts';
+import { ECharts, EChartsOption } from 'echarts';
 import { Subscription } from 'rxjs';
-import { SelectItem, MessageService } from 'primeng/api';
-import { TemperatureMinMaxMean } from '../../interface/temperature-min-max-mean';
-
+import { MessageService, SelectItem, TreeNode } from 'primeng/api';
+import { ElectricService } from '../../service/electric/electric.service';
+import {
+  Current,
+  ElectricQuantities,
+  Voltage,
+} from '../../interface/electric-quantities';
+import { ElectricPhase } from '../../interface/electric-phase';
+import {
+  ElectricData,
+  ElectricDataMinMaxMean,
+} from '../../interface/electric-data';
+import { GridFrequency } from '../../interface/electric-quantities';
 @Component({
   selector: 'app-line-chart',
   templateUrl: './line-chart.component.html',
@@ -14,145 +22,248 @@ import { TemperatureMinMaxMean } from '../../interface/temperature-min-max-mean'
 export class LineChartComponent implements OnInit, OnDestroy {
   public rangeDates: Date[] = [new Date()]; // initializing calendar's choice
   public lineChartOptions!: EChartsOption;
-  public temperatureGroupedData: {
-    minTemperatures: number[][];
-    maxTemperatures: number[][];
-    meanTemperatures: number[][];
-  } = {
-    minTemperatures: [],
-    maxTemperatures: [],
-    meanTemperatures: [],
+  public electricGroupedData: ElectricDataMinMaxMean = {
+    minCurrents: [],
+    meanCurrents: [],
+    maxCurrents: [],
+    minVoltages: [],
+    meanVoltages: [],
+    maxVoltages: [],
+    minGridFrequencies: [],
+    meanGridFrequencies: [],
+    maxGridFrequencies: [],
   };
-
-  public lineChartSelectedOption: string = 'live';
-  public readonly lineChartListOptions: SelectItem[] = [
+  public liveData!: ElectricData;
+  public lineChartSelectedDataOptions: TreeNode[] = [];
+  public lineChartSelectedDateOption: string = 'live';
+  public readonly lineChartListDateOptions: SelectItem[] = [
     { label: 'Live Data', value: 'live' },
     { label: 'Last 24 hours', value: 'day' },
     { label: 'Past 7 Days', value: '7days' },
     { label: 'Past 30 Days', value: '30days' },
     { label: 'Past Year', value: 'year' },
   ];
-  private lineChartTemperatureSubscription!: Subscription;
-  private startOfTheDate!: Date;
+  private electricQuantities: ElectricQuantities[] = [];
+  private currentPhases: ElectricPhase[] = [];
+  private voltagePhases: ElectricPhase[] = [];
+  private lineChartElectricSubscription!: Subscription;
   private intervalId: any;
   private lineChart!: ECharts;
   private static readonly MILLISECONDS_IN_HOUR = 60 * 60 * 1000;
   private static readonly MILLISECONDS_IN_DAY =
     24 * LineChartComponent.MILLISECONDS_IN_HOUR;
+  private readonly MAXIMUM_NUMBER_OF_POINTS_IN_CHART = 400;
 
   constructor(
-    private temperatureService: TemperatureService,
+    private electricService: ElectricService,
     private messageService: MessageService
   ) {}
 
   public async ngOnInit(): Promise<void> {
     this.initializeOptions();
-    this.initializeStartOfTheDate();
     await this.waitUntilChartInitialized();
-    this.onOptionChange();
+    this.onDateOptionChange();
   }
 
-  ngOnDestroy(): void {
-    this.unsubscribeFromTemperatureSubscription();
-    this.stopLiveTemperatureInterval();
+  public ngOnDestroy(): void {
+    this.unsubscribeFromElectricSubscription();
+    this.stopLiveElectricInterval();
   }
 
   public onDateRangeSelect(): void {
-    this.lineChartSelectedOption = '';
-    this.stopLiveTemperatureInterval();
-    this.unsubscribeFromTemperatureSubscription();
+    this.lineChartSelectedDateOption = '';
+    this.stopLiveElectricInterval();
+    this.unsubscribeFromElectricSubscription();
     this.lineChart?.showLoading();
-    this.clearTemperatureGroupedData();
+    this.clearElectricGroupeData();
 
     if (this.rangeDates[1] === null) {
-      this.lineChartTemperatureSubscription = this.temperatureService
-        .getTemperaturesFromDate(this.rangeDates[0])
-        .subscribe((temperatures: TemperatureMinMaxMean) => {
-          this.temperatureGroupedData.minTemperatures =
-            temperatures.minTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
+      this.lineChartElectricSubscription = this.electricService
+        .getAllElectricQuantitiesFromDate(
+          this.rangeDates[0],
+          this.electricQuantities,
+          this.currentPhases,
+          this.voltagePhases
+        )
+        .subscribe((data: ElectricDataMinMaxMean) => {
+          this.electricGroupedData = data;
+          this.updateChartWithElectricData();
 
-          this.temperatureGroupedData.maxTemperatures =
-            temperatures.maxTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
-
-          this.temperatureGroupedData.meanTemperatures =
-            temperatures.meanTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
-
-          if (
-            this.temperatureGroupedData.minTemperatures.length == 0 ||
-            this.temperatureGroupedData.meanTemperatures.length == 0 ||
-            this.temperatureGroupedData.maxTemperatures.length == 0
-          ) {
+          if (this.isElectricDataEmpty(data)) {
             this.messageService.add({
               severity: 'warn',
               summary: 'No data found',
-              detail: `No data found for date ${this.rangeDates[0].toLocaleDateString()}.`,
+              detail: `No data found for date \n ${this.rangeDates[0].toLocaleDateString()}.`,
             });
           }
-
-          this.updateChartWithTemperatureData();
         });
     } else {
-      this.lineChartTemperatureSubscription = this.temperatureService
-        .getGroupedTemperaturesBetweenDate(
+      this.lineChartElectricSubscription = this.electricService
+        .getGroupedElectricQuantitiesBetweenDate(
           this.rangeDates[0],
-          this.rangeDates[1]
+          this.rangeDates[1],
+          this.electricQuantities,
+          this.currentPhases,
+          this.voltagePhases
         )
-        .subscribe((temperatures: TemperatureMinMaxMean) => {
-          this.temperatureGroupedData.minTemperatures =
-            temperatures.minTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
+        .subscribe((data: ElectricDataMinMaxMean) => {
+          this.electricGroupedData = data;
+          this.updateChartWithElectricData();
 
-          this.temperatureGroupedData.maxTemperatures =
-            temperatures.maxTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
-
-          this.temperatureGroupedData.meanTemperatures =
-            temperatures.meanTemperatures.map((temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            });
-
-          if (
-            this.temperatureGroupedData.minTemperatures.length == 0 ||
-            this.temperatureGroupedData.meanTemperatures.length == 0 ||
-            this.temperatureGroupedData.maxTemperatures.length == 0
-          ) {
+          if (this.isElectricDataEmpty(data)) {
             this.messageService.add({
               severity: 'warn',
               summary: 'No data found',
               detail: `No data found between dates \n ${this.rangeDates[0].toLocaleDateString()} and ${this.rangeDates[1].toLocaleDateString()}.`,
             });
           }
-
-          this.updateChartWithTemperatureData();
         });
     }
   }
 
-  public onOptionChange(): void {
-    this.unsubscribeFromTemperatureSubscription();
-    this.clearTemperatureGroupedData();
+  public async onSelectedNodesChange(data: TreeNode[]) {
+    this.lineChartSelectedDataOptions = data;
+
+    this.electricQuantities = [];
+    this.currentPhases = [];
+    this.voltagePhases = [];
+
+    if (!this.lineChart) {
+      await this.waitUntilChartInitialized();
+    }
+
+    this.resetChartLegend();
+
+    data.forEach((node: TreeNode) => {
+      switch (node.data) {
+        case 'CurrentL1':
+          this.currentPhases.push(ElectricPhase.L1);
+          if (this.electricQuantities.includes(ElectricQuantities.CURRENT)) {
+            return;
+          }
+
+          this.electricQuantities.push(ElectricQuantities.CURRENT);
+          break;
+
+        case 'CurrentL2': {
+          this.currentPhases.push(ElectricPhase.L2);
+          if (this.electricQuantities.includes(ElectricQuantities.CURRENT)) {
+            return;
+          }
+
+          this.electricQuantities.push(ElectricQuantities.CURRENT);
+          break;
+        }
+
+        case 'CurrentL3': {
+          this.currentPhases.push(ElectricPhase.L3);
+          if (this.electricQuantities.includes(ElectricQuantities.CURRENT)) {
+            return;
+          }
+
+          this.electricQuantities.push(ElectricQuantities.CURRENT);
+          break;
+        }
+
+        case 'VoltageL1': {
+          this.voltagePhases.push(ElectricPhase.L1);
+          if (this.electricQuantities.includes(ElectricQuantities.VOLTAGE)) {
+            return;
+          }
+
+          this.electricQuantities.push(ElectricQuantities.VOLTAGE);
+          break;
+        }
+
+        case 'VoltageL2': {
+          this.voltagePhases.push(ElectricPhase.L2);
+          if (this.electricQuantities.includes(ElectricQuantities.VOLTAGE)) {
+            return;
+          }
+
+          this.electricQuantities.push(ElectricQuantities.VOLTAGE);
+          break;
+        }
+
+        case 'VoltageL3': {
+          this.voltagePhases.push(ElectricPhase.L3);
+          if (this.electricQuantities.includes(ElectricQuantities.VOLTAGE)) {
+            return;
+          }
+
+          this.electricQuantities.push(ElectricQuantities.VOLTAGE);
+          break;
+        }
+
+        case 'Grid frequency': {
+          if (
+            this.electricQuantities.includes(ElectricQuantities.GRID_FREQUENCY)
+          ) {
+            return;
+          }
+          this.electricQuantities.push(ElectricQuantities.GRID_FREQUENCY);
+          break;
+        }
+        default:
+          break;
+      }
+    });
+    this.onDateOptionChange();
+  }
+
+  private resetChartLegend(): void {
+    this.lineChart.setOption(
+      {
+        legend: {
+          backgroundColor: '#121212',
+          textStyle: {
+            color: 'white',
+          },
+        },
+        xAxis: {
+          type: 'time',
+          splitLine: {
+            show: true,
+          },
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: {
+            show: false,
+          },
+        },
+        series: [],
+        dataZoom: [
+          {
+            show: true,
+            type: 'slider',
+          },
+          {
+            type: 'inside',
+          },
+        ],
+        axisPointer: {
+          animation: true,
+          show: true,
+        },
+        darkMode: 'auto',
+      },
+      true
+    );
+  }
+
+  public onDateOptionChange(): void {
+    this.unsubscribeFromElectricSubscription();
+    this.clearElectricGroupeData();
     this.lineChart?.showLoading();
     this.rangeDates = [new Date()];
-    this.stopLiveTemperatureInterval();
+    this.stopLiveElectricInterval();
 
-    switch (this.lineChartSelectedOption) {
+    switch (this.lineChartSelectedDateOption) {
       case 'live':
-        this.getLiveTemperature();
-        this.startLiveTemperatureInterval();
+        this.resetChartLegend();
+        this.getLiveElectricData();
+        this.startLiveElectricInterval();
         break;
       case 'day':
         this.loadDataForPeriod(LineChartComponent.MILLISECONDS_IN_DAY);
@@ -167,152 +278,445 @@ export class LineChartComponent implements OnInit, OnDestroy {
         this.loadDataForPeriod(365 * LineChartComponent.MILLISECONDS_IN_DAY);
         break;
       default:
-        this.startLiveTemperatureInterval();
+        this.startLiveElectricInterval();
         break;
     }
   }
-  private clearTemperatureGroupedData(): void {
-    this.temperatureGroupedData = {
-      minTemperatures: [],
-      maxTemperatures: [],
-      meanTemperatures: [],
-    };
-  }
-  private getLiveTemperature(): void {
-    this.unsubscribeFromTemperatureSubscription();
 
-    this.lineChartTemperatureSubscription = this.temperatureService
-      .getTemperaturesFromDate(this.startOfTheDate)
-      .subscribe((temperatureGroupedData: TemperatureMinMaxMean) => {
-        const mappedMinTemperatures =
-          temperatureGroupedData.minTemperatures.map(
-            (temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            }
-          );
+  private fetchAndUpdateDataBetweenDates(startDate: Date, endDate: Date): void {
+    this.unsubscribeFromElectricSubscription();
+    this.clearElectricGroupeData();
+    this.lineChartElectricSubscription = this.electricService
+      .getGroupedElectricQuantitiesBetweenDate(
+        startDate,
+        endDate,
+        this.electricQuantities,
+        this.currentPhases,
+        this.voltagePhases
+      )
+      .subscribe((data: ElectricDataMinMaxMean) => {
+        this.electricGroupedData = data;
 
-        const mappedMaxTemperatures =
-          temperatureGroupedData.maxTemperatures.map(
-            (temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            }
-          );
-
-        const mappedMeanTemperatures =
-          temperatureGroupedData.meanTemperatures.map(
-            (temperature: Temperature) => {
-              const timestamp = new Date(temperature.time).getTime();
-              return [timestamp, temperature.temperature];
-            }
-          );
-
-        this.temperatureGroupedData.minTemperatures = mappedMinTemperatures;
-        this.temperatureGroupedData.maxTemperatures = mappedMaxTemperatures;
-        this.temperatureGroupedData.meanTemperatures = mappedMeanTemperatures;
-
-        this.updateChartWithTemperatureData();
+        this.updateChartWithElectricData();
+        this.lineChart.hideLoading();
       });
   }
 
-  private unsubscribeFromTemperatureSubscription(): void {
-    if (this.lineChartTemperatureSubscription) {
-      this.lineChartTemperatureSubscription.unsubscribe();
-    }
+  private clearElectricGroupeData(): void {
+    this.electricGroupedData = {
+      minCurrents: [],
+      meanCurrents: [],
+      maxCurrents: [],
+      minVoltages: [],
+      meanVoltages: [],
+      maxVoltages: [],
+      minGridFrequencies: [],
+      meanGridFrequencies: [],
+      maxGridFrequencies: [],
+    };
   }
 
   private loadDataForPeriod(period: number): void {
     const endDate = new Date();
     const startDate = new Date(endDate.getTime() - period);
 
-    this.unsubscribeFromTemperatureSubscription();
+    this.unsubscribeFromElectricSubscription();
 
-    this.lineChartTemperatureSubscription = this.temperatureService
-      .getGroupedTemperaturesBetweenDate(startDate, endDate)
-      .subscribe((temperatures: TemperatureMinMaxMean) => {
-        this.temperatureGroupedData.minTemperatures =
-          temperatures.minTemperatures.map((temperature: Temperature) => {
-            const timestamp = new Date(temperature.time).getTime();
-            return [timestamp, temperature.temperature];
-          });
-
-        this.temperatureGroupedData.maxTemperatures =
-          temperatures.maxTemperatures.map((temperature: Temperature) => {
-            const timestamp = new Date(temperature.time).getTime();
-            return [timestamp, temperature.temperature];
-          });
-
-        this.temperatureGroupedData.meanTemperatures =
-          temperatures.meanTemperatures.map((temperature: Temperature) => {
-            const timestamp = new Date(temperature.time).getTime();
-            return [timestamp, temperature.temperature];
-          });
-
-        this.updateChartWithTemperatureData();
-      });
+    this.fetchAndUpdateDataBetweenDates(startDate, endDate);
   }
 
-  private initializeStartOfTheDate(): void {
-    this.startOfTheDate = new Date();
-    this.startOfTheDate.setHours(0, 0, 0, 0);
+  private isElectricDataEmpty(data: ElectricDataMinMaxMean): boolean {
+    if (!data) {
+      return true;
+    }
+
+    return Object.values(data).every(
+      (arr) => arr === null || arr === undefined || arr.length === 0
+    );
   }
 
-  private updateChartWithTemperatureData(): void {
-    this.lineChart.setOption({
-      series: [
-        {
-          name: 'LiveTemperature',
-          type: 'line',
-          showSymbol: false,
-          data: [],
-        },
-        {
-          name: 'MinTemperature',
-          type: 'line',
-          showSymbol: false,
-          areaStyle: {},
-          data: this.temperatureGroupedData.minTemperatures,
-        },
-        {
-          name: 'MaxTemperature',
-          type: 'line',
-          showSymbol: false,
-          areaStyle: {},
-          data: this.temperatureGroupedData.maxTemperatures,
-        },
-        {
-          name: 'MeanTemperature',
-          type: 'line',
-          showSymbol: false,
-          areaStyle: {},
-          data: this.temperatureGroupedData.meanTemperatures,
-        },
-      ],
-      legend: {
-        show: true,
-        data: [
+  private async updateChartWithElectricData(): Promise<void> {
+    if (!this.lineChart) {
+      await this.waitUntilChartInitialized();
+    }
+
+    let series: any[] = [];
+
+    switch (this.electricQuantities?.at(0)) {
+      case ElectricQuantities.CURRENT: {
+        if (this.currentPhases)
+          if (this.currentPhases.includes(ElectricPhase.L1)) {
+            series.push(
+              {
+                name: 'Min L1 current',
+                type: 'line',
+                showSymbol: false,
+                areaStyle: {},
+                data: this.electricGroupedData.minCurrents
+                  .filter((data: Current) => data.phase === ElectricPhase.L1)
+                  .map((data: Current) => [
+                    new Date(data.time).getTime(),
+                    data.current,
+                  ]),
+              },
+              {
+                name: 'Mean L1 current',
+                type: 'line',
+                showSymbol: false,
+                areaStyle: {}, // spravit aj pri zmene datumu aj dat
+                data: this.electricGroupedData.meanCurrents
+                  .filter((data: Current) => data.phase === ElectricPhase.L1)
+                  .map((data: Current) => [
+                    new Date(data.time).getTime(),
+                    data.current,
+                  ]),
+              },
+              {
+                name: 'Max L1 current',
+                type: 'line',
+                showSymbol: false,
+                areaStyle: {},
+                data: this.electricGroupedData.maxCurrents
+                  .filter((data: Current) => data.phase === ElectricPhase.L1)
+                  .map((data: Current) => [
+                    new Date(data.time).getTime(),
+                    data.current,
+                  ]),
+              }
+            );
+          }
+
+        if (this.currentPhases.includes(ElectricPhase.L2)) {
+          series.push(
+            {
+              name: 'Min L2 current',
+              type: 'line',
+              showSymbol: false,
+              areaStyle: {},
+              data: this.electricGroupedData.minCurrents
+                .filter((data: Current) => data.phase === ElectricPhase.L2)
+                .map((data: Current) => [
+                  new Date(data.time).getTime(),
+                  data.current,
+                ]),
+            },
+            {
+              name: 'Mean L2 current',
+              type: 'line',
+              showSymbol: false,
+              areaStyle: {},
+              data: this.electricGroupedData.meanCurrents
+                .filter((data: Current) => data.phase === ElectricPhase.L2)
+                .map((data: Current) => [
+                  new Date(data.time).getTime(),
+                  data.current,
+                ]),
+            },
+            {
+              name: 'Max L2 current',
+              type: 'line',
+              showSymbol: false,
+              areaStyle: {},
+              data: this.electricGroupedData.maxCurrents
+                .filter((data: Current) => data.phase === ElectricPhase.L2)
+                .map((data: Current) => [
+                  new Date(data.time).getTime(),
+                  data.current,
+                ]),
+            }
+          );
+        }
+
+        if (this.currentPhases.includes(ElectricPhase.L3)) {
+          series.push(
+            {
+              name: 'Min L3 current',
+              type: 'line',
+              showSymbol: false,
+              areaStyle: {},
+              data: this.electricGroupedData.minCurrents
+                .filter((data: Current) => data.phase === ElectricPhase.L3)
+                .map((data: Current) => [
+                  new Date(data.time).getTime(),
+                  data.current,
+                ]),
+            },
+            {
+              name: 'Mean L3 current',
+              type: 'line',
+              showSymbol: false,
+              areaStyle: {},
+              data: this.electricGroupedData.meanCurrents
+                .filter((data: Current) => data.phase === ElectricPhase.L3)
+                .map((data: Current) => [
+                  new Date(data.time).getTime(),
+                  data.current,
+                ]),
+            },
+            {
+              name: 'Max L3 current',
+              type: 'line',
+              showSymbol: false,
+              areaStyle: {},
+              data: this.electricGroupedData.maxCurrents
+                .filter((data: Current) => data.phase === ElectricPhase.L3)
+                .map((data: Current) => [
+                  new Date(data.time).getTime(),
+                  data.current,
+                ]),
+            }
+          );
+        }
+        break;
+      }
+      case ElectricQuantities.VOLTAGE: {
+        if (this.voltagePhases)
+          if (this.voltagePhases.includes(ElectricPhase.L1)) {
+            series.push(
+              {
+                name: 'Min L1 voltage',
+                type: 'line',
+                showSymbol: false,
+                // areaStyle: {},
+                data: this.electricGroupedData.minVoltages
+                  .filter((data: Voltage) => data.phase === ElectricPhase.L1)
+                  .map((data: Voltage) => [
+                    new Date(data.time).getTime(),
+                    data.voltage,
+                  ]),
+              },
+              {
+                name: 'Mean L1 voltage',
+                type: 'line',
+                showSymbol: false,
+                // areaStyle: {},
+                data: this.electricGroupedData.meanVoltages
+                  .filter((data: Voltage) => data.phase === ElectricPhase.L1)
+                  .map((data: Voltage) => [
+                    new Date(data.time).getTime(),
+                    data.voltage,
+                  ]),
+              },
+              {
+                name: 'Max L1 voltage',
+                type: 'line',
+                showSymbol: false,
+                // areaStyle: {},
+                data: this.electricGroupedData.maxVoltages
+                  .filter((data: Voltage) => data.phase === ElectricPhase.L1)
+                  .map((data: Voltage) => [
+                    new Date(data.time).getTime(),
+                    data.voltage,
+                  ]),
+              }
+            );
+          }
+
+        if (this.voltagePhases.includes(ElectricPhase.L2)) {
+          series.push(
+            {
+              name: 'Min L2 voltage',
+              type: 'line',
+              showSymbol: false,
+              // areaStyle: {},
+              data: this.electricGroupedData.minVoltages
+                .filter((data: Voltage) => data.phase === ElectricPhase.L2)
+                .map((data: Voltage) => [
+                  new Date(data.time).getTime(),
+                  data.voltage,
+                ]),
+            },
+            {
+              name: 'Mean L2 voltage',
+              type: 'line',
+              showSymbol: false,
+              // areaStyle: {},
+              data: this.electricGroupedData.meanVoltages
+                .filter((data: Voltage) => data.phase === ElectricPhase.L2)
+                .map((data: Voltage) => [
+                  new Date(data.time).getTime(),
+                  data.voltage,
+                ]),
+            },
+            {
+              name: 'Max L2 voltage',
+              type: 'line',
+              showSymbol: false,
+              // areaStyle: {},
+              data: this.electricGroupedData.maxVoltages
+                .filter((data: Voltage) => data.phase === ElectricPhase.L2)
+                .map((data: Voltage) => [
+                  new Date(data.time).getTime(),
+                  data.voltage,
+                ]),
+            }
+          );
+        }
+
+        if (this.voltagePhases.includes(ElectricPhase.L3)) {
+          series.push(
+            {
+              name: 'Min L3 voltage',
+              type: 'line',
+              showSymbol: false,
+              // areaStyle: {},
+              data: this.electricGroupedData.minVoltages
+                .filter((data: Voltage) => data.phase === ElectricPhase.L3)
+                .map((data: Voltage) => [
+                  new Date(data.time).getTime(),
+                  data.voltage,
+                ]),
+            },
+            {
+              name: 'Mean L3 voltage',
+              type: 'line',
+              showSymbol: false,
+              // areaStyle: {},
+              data: this.electricGroupedData.meanVoltages
+                .filter((data: Voltage) => data.phase === ElectricPhase.L3)
+                .map((data: Voltage) => [
+                  new Date(data.time).getTime(),
+                  data.voltage,
+                ]),
+            },
+            {
+              name: 'Max L3 voltage',
+              type: 'line',
+              showSymbol: false,
+              // areaStyle: {},
+              data: this.electricGroupedData.maxVoltages
+                .filter((data: Voltage) => data.phase === ElectricPhase.L3)
+                .map((data: Voltage) => [
+                  new Date(data.time).getTime(),
+                  data.voltage,
+                ]),
+            }
+          );
+        }
+        break;
+      }
+      case ElectricQuantities.GRID_FREQUENCY: {
+        series.push(
           {
-            name: 'MinTemperature',
+            name: 'Min grid frequencies',
+            type: 'line',
+            showSymbol: false,
+            // areaStyle: {},
+            data: this.electricGroupedData.minGridFrequencies.map(
+              (data: GridFrequency) => [
+                new Date(data.time).getTime(),
+                data.frequency,
+              ]
+            ),
           },
           {
-            name: 'MeanTemperature',
+            name: 'Mean grid frequencies',
+            type: 'line',
+            showSymbol: false,
+            // areaStyle: {},
+            data: this.electricGroupedData.meanGridFrequencies.map(
+              (data: GridFrequency) => [
+                new Date(data.time).getTime(),
+                data.frequency,
+              ]
+            ),
           },
           {
-            name: 'MaxTemperature',
+            name: 'Max grid frequencies',
+            type: 'line',
+            showSymbol: false,
+            // areaStyle: {},
+            data: this.electricGroupedData.maxGridFrequencies.map(
+              (data: GridFrequency) => [
+                new Date(data.time).getTime(),
+                data.frequency,
+              ]
+            ),
+          }
+        );
+        break;
+      }
+    }
+
+    let minValue = 0;
+    let maxValue = 0;
+
+    switch (this.electricQuantities.at(0)) {
+      case ElectricQuantities.CURRENT:
+        minValue = -40;
+        maxValue = 40;
+        break;
+      case ElectricQuantities.VOLTAGE:
+        minValue = 209;
+        maxValue = 253;
+        break;
+      case ElectricQuantities.GRID_FREQUENCY:
+        minValue = 49.8;
+        maxValue = 50.2;
+        break;
+      default:
+        break;
+    }
+
+    this.lineChart.setOption(
+      {
+        legend: {
+          backgroundColor: '#121212',
+          textStyle: {
+            color: 'white',
+          },
+        },
+        xAxis: {
+          type: 'time',
+          splitLine: {
+            show: true,
+          },
+        },
+        yAxis: {
+          type: 'value',
+          min: minValue,
+          max: maxValue,
+          splitLine: {
+            show: false,
+          },
+        },
+        series: series,
+        dataZoom: [
+          {
+            show: true,
+            type: 'slider',
+          },
+          {
+            type: 'inside',
           },
         ],
+        axisPointer: {
+          animation: true,
+          show: true,
+        },
+        darkMode: 'auto',
+      },
+      true
+    );
+
+    this.lineChart.setOption({
+      legend: {
+        backgroundColor: '#121212',
+        textStyle: {
+          color: 'white',
+        },
       },
     });
-
-    this.lineChart?.hideLoading();
+    this.lineChart.hideLoading();
   }
 
   private initializeOptions(): void {
     this.lineChartOptions = {
-      tooltip: {},
       legend: {
-        backgroundColor: 'lightBlue',
+        backgroundColor: '#121212',
+        textStyle: {
+          color: 'white',
+        },
       },
       xAxis: {
         type: 'time',
@@ -327,29 +731,7 @@ export class LineChartComponent implements OnInit, OnDestroy {
           show: false,
         },
       },
-      series: [
-        {
-          name: 'MinTemperature',
-          type: 'line',
-          showSymbol: false,
-          areaStyle: {},
-          data: this.temperatureGroupedData.minTemperatures,
-        },
-        {
-          name: 'MaxTemperature',
-          type: 'line',
-          showSymbol: false,
-          areaStyle: {},
-          data: this.temperatureGroupedData.maxTemperatures,
-        },
-        {
-          name: 'MeanTemperature',
-          type: 'line',
-          showSymbol: false,
-          areaStyle: {},
-          data: this.temperatureGroupedData.meanTemperatures,
-        },
-      ],
+      series: [],
       dataZoom: [
         {
           show: true,
@@ -366,18 +748,215 @@ export class LineChartComponent implements OnInit, OnDestroy {
     };
   }
 
-  private stopLiveTemperatureInterval(): void {
+  unsubscribeFromElectricSubscription(): void {
+    if (this.lineChartElectricSubscription) {
+      this.lineChartElectricSubscription.unsubscribe();
+    }
+  }
+
+  private stopLiveElectricInterval(): void {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = undefined;
     }
   }
 
-  private startLiveTemperatureInterval(): void {
+  private startLiveElectricInterval(): void {
     this.lineChart?.hideLoading();
     this.intervalId = setInterval(() => {
-      this.getLiveTemperature();
-    }, 10000);
+      this.getLiveElectricData();
+    }, 5000);
+  }
+
+  private getLiveElectricData(): void {
+    this.unsubscribeFromElectricSubscription();
+
+    this.lineChartElectricSubscription = this.electricService
+      .getLastNValues(
+        this.MAXIMUM_NUMBER_OF_POINTS_IN_CHART,
+        this.electricQuantities,
+        this.currentPhases,
+        this.voltagePhases
+      )
+      .subscribe((data: ElectricData) => {
+        this.liveData = data;
+        this.updateChartWithLiveData();
+      });
+  }
+
+  private async updateChartWithLiveData(): Promise<void> {
+    if (!this.lineChart) {
+      await this.waitUntilChartInitialized();
+    }
+
+    let series: any[] = [];
+
+    if (this.electricQuantities.includes(ElectricQuantities.CURRENT)) {
+      if (this.currentPhases.includes(ElectricPhase.L1)) {
+        series.push({
+          name: 'L1 Current',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.liveData.currents
+            .filter((current: Current) => current.phase === ElectricPhase.L1)
+            .map((data: Current) => [
+              new Date(data.time).getTime(),
+              data.current,
+            ]),
+        });
+      }
+
+      if (this.currentPhases.includes(ElectricPhase.L2)) {
+        series.push({
+          name: 'L2 Current',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.liveData.currents
+            .filter((current: Current) => current.phase === ElectricPhase.L2)
+            .map((data: Current) => [
+              new Date(data.time).getTime(),
+              data.current,
+            ]),
+        });
+      }
+
+      if (this.currentPhases.includes(ElectricPhase.L3)) {
+        series.push({
+          name: 'L3 Current',
+          type: 'line',
+          showSymbol: false,
+          areaStyle: {},
+          data: this.liveData.currents
+            .filter((current: Current) => current.phase === ElectricPhase.L3)
+            .map((data: Current) => [
+              new Date(data.time).getTime(),
+              data.current,
+            ]),
+        });
+      }
+    }
+
+    if (this.electricQuantities.includes(ElectricQuantities.GRID_FREQUENCY)) {
+      series.push({
+        name: 'Grid Frequency',
+        type: 'line',
+        showSymbol: false,
+        areaStyle: {},
+        data: this.liveData.gridFrequencies.map(
+          (gridFrequency: GridFrequency) => [
+            new Date(gridFrequency.time).getTime(),
+            gridFrequency.frequency,
+          ]
+        ),
+      });
+    }
+
+    if (this.electricQuantities.includes(ElectricQuantities.VOLTAGE)) {
+      if (this.voltagePhases.includes(ElectricPhase.L1)) {
+        series.push({
+          name: 'L1 Voltage',
+          type: 'line',
+          showSymbol: false,
+          // areaStyle: {},
+          data: this.liveData.voltages
+            .filter((voltage: Voltage) => voltage.phase === ElectricPhase.L1)
+            .map((data: Voltage) => [
+              new Date(data.time).getTime(),
+              data.voltage,
+            ]),
+        });
+      }
+
+      if (this.voltagePhases.includes(ElectricPhase.L2)) {
+        series.push({
+          name: 'L2 Voltage',
+          type: 'line',
+          showSymbol: false,
+          // areaStyle: {},
+          data: this.liveData.voltages
+            .filter((voltage: Voltage) => voltage.phase === ElectricPhase.L2)
+            .map((data: Voltage) => [
+              new Date(data.time).getTime(),
+              data.voltage,
+            ]),
+        });
+      }
+
+      if (this.voltagePhases.includes(ElectricPhase.L3)) {
+        series.push({
+          name: 'L3 Voltage',
+          type: 'line',
+          showSymbol: false,
+          // areaStyle: {},
+          data: this.liveData.voltages
+            .filter((voltage: Voltage) => voltage.phase === ElectricPhase.L3)
+            .map((data: Voltage) => [
+              new Date(data.time).getTime(),
+              data.voltage,
+            ]),
+        });
+      }
+    }
+
+    let minValue = 0;
+    let maxValue = 0;
+
+    switch (this.electricQuantities.at(0)) {
+      case ElectricQuantities.CURRENT:
+        minValue = -40;
+        maxValue = 40;
+        break;
+      case ElectricQuantities.VOLTAGE:
+        minValue = 209;
+        maxValue = 253;
+        break;
+      case ElectricQuantities.GRID_FREQUENCY:
+        minValue = 49.8;
+        maxValue = 50.2;
+        break;
+      default:
+        break;
+    }
+
+    this.lineChart.setOption({
+      legend: {
+        backgroundColor: '#121212',
+        textStyle: {
+          color: 'white',
+        },
+      },
+      xAxis: {
+        type: 'time',
+        splitLine: {
+          show: true,
+        },
+      },
+      yAxis: {
+        type: 'value',
+        min: minValue,
+        max: maxValue,
+        splitLine: {
+          show: false,
+        },
+      },
+      series: series,
+      dataZoom: [
+        {
+          show: true,
+          type: 'slider',
+        },
+        {
+          type: 'inside',
+        },
+      ],
+      axisPointer: {
+        animation: true,
+        show: true,
+      },
+      darkMode: 'auto',
+    });
   }
 
   public onLineChartInit(chart: any): void {

@@ -32,7 +32,7 @@
             "styles": [
               "node_modules/primeicons/primeicons.css",
               "node_modules/primeng/resources/primeng.min.css",
-              "primeng/resources/themes/saga-blue/theme.css",
+              "primeng/resources/themes/viva-dark/theme.css",
               "node_modules/primeflex/primeflex.css"
             ],
             "scripts": []
@@ -43,7 +43,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kb",
-                  "maximumError": "1mb"
+                  "maximumError": "2mb"
                 },
                 {
                   "type": "anyComponentStyle",

@@ -1,1 +1,13 @@
-<div echarts (autoResize)="true" class="chart" (chartInit)="onGaugeChartInit($event)" [options]="optionsGaugeChart"></div>
+<div>
+  <app-electric-data-tree-select
+    [onlyOneOption]="true"
+    (selectedNodesChange)="onSelectedNodesChange($event)"
+  ></app-electric-data-tree-select>
+  <div
+    echarts
+    (autoResize)="(true)"
+    class="chart"
+    (chartInit)="onGaugeChartInit($event)"
+    [options]="optionsGaugeChart"
+  ></div>
+</div>
